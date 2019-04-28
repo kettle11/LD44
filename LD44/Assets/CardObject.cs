@@ -36,6 +36,12 @@ public class CardObject : MonoBehaviour
     public Texture2D tragicEventBackMaterial;
     public Texture2D tragicEventFrontTexture;
 
+    public Color eventcolor;
+    public Color eventTextColor;
+    
+    public Texture2D eventBackMaterial;
+    public Texture2D eventFrontTexture;
+    
     public MeshRenderer frontRenderer;
 
     public Sprite icon1;
@@ -60,7 +66,8 @@ public class CardObject : MonoBehaviour
     public enum LineType
     {
         Choice,
-        TragicEvent
+        TragicEvent,
+        Event
     };
 
     float startZ;
@@ -81,6 +88,18 @@ public class CardObject : MonoBehaviour
         dropShaderMaterial = shadowRenderer.material;
     }
 
+    public Color GetPrimaryColor() {
+        if (card.type == CardType.Choice) {
+            return choiceColor;
+        } else if (card.type == CardType.TragicEvent) {
+            return tragicEventColor;
+        } else if (card.type == CardType.Event) {
+            return eventcolor;
+        }
+
+        return choiceColor;
+    }
+
     public void InitializeLine(
             TMPro.TextMeshProUGUI text, 
             SpriteRenderer sprite,
@@ -97,6 +116,10 @@ public class CardObject : MonoBehaviour
             text.color = tragicEventTextColor;
             text.text = stringSet;
             sprite.color = tragicEventColor;
+        } else if (lineType == LineType.Event) {
+            text.color = eventTextColor;
+            text.text = stringSet;
+            sprite.color = eventcolor;
         }
 
         if (count == 1) {
@@ -154,7 +177,7 @@ public class CardObject : MonoBehaviour
     
         int currentLine = 0;
 
-        if(card.tragicEvents.Count == 0) currentLine = 1;
+        if(card.tragicEvents.Count == 0 && card.events.Count == 0) currentLine = 1;
         
         for (int i = 0; i < 3; ++i) {
             lineText[i].enabled = false;
@@ -167,6 +190,9 @@ public class CardObject : MonoBehaviour
         } else if (card.type == CardType.TragicEvent) {
             backMaterial.mainTexture = tragicEventBackMaterial;
             frontRenderer.material.mainTexture = tragicEventFrontTexture;
+        } else if (card.type == CardType.Event) {
+            backMaterial.mainTexture = eventBackMaterial;
+            frontRenderer.material.mainTexture = eventFrontTexture;
         }
     
         if (card.choiceCards.Count > 0) {
@@ -181,6 +207,16 @@ public class CardObject : MonoBehaviour
             int count = card.tragicEvents.Count;
             string toAppend = CreateString(count, "Tragic Event");
             InitializeLine(lineText[currentLine], lineSprite[currentLine], LineType.TragicEvent, toAppend, count);
+
+            lineText[currentLine].enabled = true;
+            lineSprite[currentLine].enabled = true;
+            currentLine++;
+        }
+
+        if (card.events.Count > 0) {
+            int count = card.events.Count;
+            string toAppend = CreateString(count, "Event");
+            InitializeLine(lineText[currentLine], lineSprite[currentLine], LineType.Event, toAppend, count);
 
             lineText[currentLine].enabled = true;
             lineSprite[currentLine].enabled = true;

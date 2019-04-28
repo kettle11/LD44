@@ -19,13 +19,14 @@ public class Deck : MonoBehaviour
     
     Cards allCards;
     
-    int year = 0;
+    int year = 1;
 
     public int animationsWaitingOn = 0;
 
     // Start is called before the first frame update
     void Start()
     {
+        targetBackgroundColor = backgroundColor;
         allCards = new Cards();
        // AddCardToDeck(allCards.cards["Eat"]);
         AddCardToDeck(allCards.cards["Cry"]);
@@ -137,10 +138,18 @@ public class Deck : MonoBehaviour
             newCard.InitializeCard(card);
             CreatePreviewCard(newCard, ref currentX, cardWidth);
         }
+
+        currentX += choicePadding;
+
+
+        foreach(Card card in co.card.events) {
+            CardObject newCard = GetCardFromPool();
+            newCard.InitializeCard(card);
+            CreatePreviewCard(newCard, ref currentX, cardWidth);
+        }
     }
 
     void HidePreviewCards() {
-
         foreach(CardObject c in previewCards) {
             c.StartFadeOut(0);
             c.returnWhenAnimationDone = true;
@@ -277,6 +286,10 @@ public class Deck : MonoBehaviour
 
             if (card.type == CardType.Choice) {
                 newCard.StartRotation(-animationTotal + -index * animationOffset, 180, 0);
+            } else if (card.type == CardType.Event) {
+                newCard.StartRotation(-animationTotal * 1.3f + -index * animationOffset, 180, 0);
+                //newCard.transform.rotation = Quaternion.Euler(0, 180, 0);
+                //newCard.StartHover();
             } else if (card.type == CardType.TragicEvent) {
                 newCard.StartRotation(-animationTotal * 1.6f + -index * animationOffset, 180, 0);
                 //newCard.transform.rotation = Quaternion.Euler(0, 180, 0);
@@ -300,6 +313,16 @@ public class Deck : MonoBehaviour
         }
 
         foreach(Card c in cardObject.card.tragicEvents) {
+            if (!c.onetime || !allCards.CheckPlayed(c)) {
+                AddCardToDeck(c);
+
+                if (c.onetime) {
+                    allCards.OneTime(cardObject.card);
+                }
+            }
+        }
+
+        foreach(Card c in cardObject.card.events) {
             if (!c.onetime || !allCards.CheckPlayed(c)) {
                 AddCardToDeck(c);
 
@@ -338,7 +361,7 @@ public class Deck : MonoBehaviour
 
         cardsPlayedCount++;
         CheckEndState();
-
+        FlashColor(cardObject.GetPrimaryColor(), .3f);
     }   
 
     public TMPro.TextMeshProUGUI yearText;
@@ -412,7 +435,7 @@ public class Deck : MonoBehaviour
     void CheckEndState() {
         int eventCardCount = 0;
         foreach(CardObject card in cardsInHand) {
-            if (card.card.type == CardType.TragicEvent) {
+            if (card.card.type == CardType.TragicEvent || card.card.type == CardType.Event) {
                 eventCardCount++;
             }
         }
@@ -428,7 +451,41 @@ public class Deck : MonoBehaviour
 
     CardObject hoveringOver;
 
+
+
+    public AnimationCurve cameraColorPulse;
+
+    public Color backgroundColor;
+
+    public Color targetBackgroundColor;
+    
+    public float backgroundFadeSpeed = .1f;
+
+    void SetBackGroundColorTarget(Color color) {
+        targetBackgroundColor = color;
+    }
+
+    void FlashColor(Color color, float duration) {
+        tempColor = color; 
+        tempTimer = duration;
+    }
+    
+    Color tempColor;
+    float tempTimer;
+    void MainCameraFlashFade() {
+        if (tempTimer > 0) {
+            targetBackgroundColor = tempColor;
+            tempTimer -= Time.deltaTime;
+        } else {
+            targetBackgroundColor = backgroundColor;
+        }
+
+        Camera.main.backgroundColor = Color.Lerp( Camera.main.backgroundColor , targetBackgroundColor, Time.deltaTime / backgroundFadeSpeed);
+    }
+    
+
     void Update() {
+        MainCameraFlashFade();
         if (delayedDealHand && animationsWaitingOn <= 1) {
             delayedDealHand = false;
             animationsWaitingOn = 0;
@@ -450,6 +507,8 @@ public class Deck : MonoBehaviour
             
             if (hoveringOver != null && cardObject != hoveringOver) {
                 hoveringOver.StopHover();
+                SetBackGroundColorTarget(backgroundColor);
+
                 HidePreviewCards();
             }
 
@@ -462,6 +521,10 @@ public class Deck : MonoBehaviour
                     GeneratePreviewCards(cardObject);
                 }
 
+                if (cardObject.hoverReady) {
+                    FlashColor(Color.Lerp(cardObject.GetPrimaryColor(), backgroundColor, .7f), .1f);
+                }
+
                 if (Input.GetMouseButtonDown(0)) {
                     ActivateCard(cardObject);
                    // Debug.Log(cardObject.card.name);
@@ -470,6 +533,7 @@ public class Deck : MonoBehaviour
         } else {
             if (hoveringOver != null) {
                 hoveringOver.StopHover();
+                SetBackGroundColorTarget(backgroundColor);
                 HidePreviewCards();
             }
 

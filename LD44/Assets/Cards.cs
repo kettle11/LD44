@@ -3,7 +3,8 @@ using System.Collections.Generic;
 public enum CardType
 {
     Choice,
-    TragicEvent
+    TragicEvent,
+    Event
 };
 
 public class Card
@@ -16,21 +17,29 @@ public class Card
 
     public List<Card> choiceCards;
     public List<Card> tragicEvents;
+    public List<Card> events;
 
     public int handSizeAdjustmentTurns;
     public int handSizeAdjustment; 
 
     public CardType type;
 
+    public bool isEvent; // An "Event" is a tragic event with this flag set.
+
     public Card(string nameSet, int lifespanSet) {
         name = nameSet;
         lifespan = lifespanSet;
         choiceCards = new List<Card>();
         tragicEvents = new List<Card>();
+        events = new List<Card>();
     }
 
     public void AddChoiceCard(Card card) {
         choiceCards.Add(card);
+    }
+
+    public void AddEvent(Card card) {
+        events.Add(card);
     }
 
     public void AddTragicEvent(Card card) {
@@ -44,6 +53,7 @@ public class Card
         lifespan = card.lifespan;
         choiceCards = new List<Card>(card.choiceCards);
         tragicEvents = new List<Card>(card.tragicEvents);
+        events = new List<Card>(card.events);
         type = card.type;
     }
 }
@@ -60,9 +70,16 @@ public class Cards
         return newCard;
     }
 
-    public Card MakeTragicEvent(string name, int lifespan) {
-        Card card = MakeCard(name, lifespan);
+    public Card MakeTragicEvent(string name) {
+        Card card = MakeCard(name, 0);
         card.type = CardType.TragicEvent;
+        return card;
+    }
+
+
+    public Card MakeEvent(string name) {
+        Card card = MakeCard(name, 0);
+        card.type = CardType.Event;
         return card;
     }
 
@@ -75,7 +92,9 @@ public class Cards
     }
 
     public void CreateCards() {
-        Card testTragedy = MakeTragicEvent("Smelly Socks", 0);
+        Card birth = MakeEvent("Birth");
+
+        Card testTragedy = MakeTragicEvent("Smelly Socks");
         testTragedy.handSizeAdjustment = 3;
         testTragedy.handSizeAdjustmentTurns = 3;
 
@@ -84,6 +103,8 @@ public class Cards
 
         Card cry = MakeCard("Cry", 0);
 
+        cry.AddEvent(birth);
+        
        // cry.AddTragicEvent(testTragedy);
 
         Card poopCard =  MakeCard("Poo", 0);
