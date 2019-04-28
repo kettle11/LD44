@@ -95,10 +95,8 @@ public class Cards
     }
 
     public void CreateCards() {
-        Card birth = MakeEvent("Birth");
-
-        birth.cardDiscard = 2;
-        birth.cardDraw = 2;
+        Card birth = MakeCard("Begin your life", 0);
+        
         Card testTragedy = MakeTragicEvent("Smelly Socks");
         testTragedy.handSizeAdjustment = 3;
         testTragedy.handSizeAdjustmentTurns = 3;
@@ -107,6 +105,9 @@ public class Cards
         Card burpCard = MakeCard("Burp", 0);
 
         Card cry = MakeCard("Cry", 0);
+
+        birth.AddChoiceCard(cry);
+        birth.AddChoiceCard(burpCard);
 
         cry.AddEvent(birth);
 

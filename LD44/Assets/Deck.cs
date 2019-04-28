@@ -31,8 +31,9 @@ public class Deck : MonoBehaviour
     
     float baseCardWidth; 
     // Start is called before the first frame update
+    
     void Start()
-    {
+    {   
         for (int i = 0; i < maxHandSize; ++i) {
             openHandIndices.Add(true);
         }
@@ -41,14 +42,7 @@ public class Deck : MonoBehaviour
 
         targetBackgroundColor = backgroundColor;
         allCards = new Cards();
-       // AddCardToDeck(allCards.cards["Eat"]);
-        AddCardToDeck(allCards.cards["Cry"]);
-        
-       // AddCardToDeck(allCards.cards["Smelly Socks"]);
-
-       // AddCardToDeck(allCards.cards["Eat"]);
-        //AddCardToDeck(allCards.cards["Cry"]);
-        //AddCardToDeck(allCards.cards["Eat"]);
+        AddCardToDeck(allCards.cards["Begin your life"]);
 
         for (int i = 0; i < cardPoolSize; ++i) {
             CardObject cardObject = GameObject.Instantiate(cardPrefab, Vector3.zero, Quaternion.identity);
@@ -438,6 +432,8 @@ public class Deck : MonoBehaviour
 
     public TMPro.TextMeshProUGUI yearText;
     public TMPro.TextMeshProUGUI tipText;
+    public TMPro.TextMeshProUGUI title;
+    public Rigidbody titleCard;
 
     void UpdateYear() {
 
@@ -481,8 +477,14 @@ public class Deck : MonoBehaviour
 
     }
 
+    public Color gameBackgroundColor;
     bool delayedDealHand = false;
+
     void NextTurn() {
+       // titleCard.isKinematic = false;
+        title.enabled = false;
+        backgroundColor = gameBackgroundColor;
+
         year++;
         UpdateYear();
 
