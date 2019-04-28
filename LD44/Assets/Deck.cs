@@ -21,15 +21,18 @@ public class Deck : MonoBehaviour
     
     int year = 0;
 
+    public int animationsWaitingOn = 0;
+
     // Start is called before the first frame update
     void Start()
     {
         allCards = new Cards();
-        AddCardToDeck(allCards.cards["Eat"]);
+       // AddCardToDeck(allCards.cards["Eat"]);
         AddCardToDeck(allCards.cards["Cry"]);
-        AddCardToDeck(allCards.cards["Smelly Socks"]);
+        
+       // AddCardToDeck(allCards.cards["Smelly Socks"]);
 
-        AddCardToDeck(allCards.cards["Eat"]);
+       // AddCardToDeck(allCards.cards["Eat"]);
         //AddCardToDeck(allCards.cards["Cry"]);
         //AddCardToDeck(allCards.cards["Eat"]);
 
@@ -42,6 +45,7 @@ public class Deck : MonoBehaviour
         }
 
         StartGame();
+
     }
 
     public Text deckCountText;
@@ -56,6 +60,10 @@ public class Deck : MonoBehaviour
         co.transform.position = new Vector3(1000, 1000, 0);
        // co.gameObject.SetActive(false);
         cardPool.Add(co);
+
+        if (co.waitingForAnimation) {
+            animationsWaitingOn--;
+        }
      //   Debug.Log("returned card to pool");
     }
 
@@ -144,7 +152,16 @@ public class Deck : MonoBehaviour
     
     public float animationOffset = .1f;
 
+    int firstDealCounter = 3;
+
     void DealHand() {
+        
+        firstDealCounter--;
+
+        if ((cardsInDeck.Count <= 4 && animationsWaitingOn > 0) || firstDealCounter > 0) {
+            delayedDealHand = true;
+            return;
+        }
 
         BoxCollider collider = cardPrefab.GetComponent<BoxCollider>();
         float cardWidth = collider.size.x;
@@ -169,20 +186,73 @@ public class Deck : MonoBehaviour
             );
             handOffset += handPadding;
         }
+
+        GenerateTopDeck();
+
+        
+        AddCardToDeck(allCards.cards["Smelly Socks"]);
+        GenerateTopDeck();
+        UpdateDeckSize();
     }
 
+    CardObject topCard;
+    int topCardIndex;
+
     void AddCardToDeck(Card card) {
-        Card newCard = new Card(card);
-        cardsInDeck.Add(newCard);
+        Card copiedCard = new Card(card);
+        cardsInDeck.Add(copiedCard);
+
+        GenerateTopDeck();
+    }
+
+    bool topCardReady = false;
+
+    void GenerateTopDeck() {
+
+        if (topCard != null) {
+            topCard.returnWhenAnimationDone = true;
+            topCard.StartFadeOut(0);
+            topCardReady = false;
+        }
+
+        if (cardsInDeck.Count == 0) return;
+
+        // Next card
+        CardObject newCard = GetCardFromPool();
+        int randomIndex = Random.Range(0, cardsInDeck.Count);
+        Card c = cardsInDeck[randomIndex];
+        newCard.InitializeCard(c);
+        
+        newCard.gameObject.transform.rotation = Quaternion.Euler(0, 180, 0);
+        newCard.isPreview = true;
+        newCard.baseScale = .8f;
+        newCard.gameObject.transform.position = cardStartTransform.position;
+        newCard.targetPos = cardStartTransform.position;
+
+        newCard.timer = newCard.timerMax;
+        newCard.hoverTimer = newCard.hoverTimerMax;
+        topCard = newCard;
+        topCardIndex = randomIndex;
+        topCardReady = true;
     }
 
     // Deck does not have to really be "shuffled", a random card can just be drawn.
     Card GetCardFromDeck() {
         int index = Random.Range(0, cardsInDeck.Count);
-        Card card = cardsInDeck[index];
-        cardsInDeck.RemoveAt(index);
-        UpdateDeckSize();
-        return card;
+
+        if (topCard != null && topCardReady) {
+            Card card = topCard.card;
+            cardsInDeck.Remove(card);
+            topCardReady = false;
+            UpdateDeckSize();
+            return card;
+        } else {
+            
+            Card card = cardsInDeck[index];
+            cardsInDeck.RemoveAt(index);
+            UpdateDeckSize();
+            return card;
+        }
     }
 
     public Transform handCenter;
@@ -202,6 +272,7 @@ public class Deck : MonoBehaviour
             newCard.InitializeCard(card);
 
             newCard.InitializeAnimation(-index * animationOffset, cardStartTransform.position, pos);
+
             //newCard.gameObject.SetActive(true);
 
             if (card.type == CardType.Choice) {
@@ -253,6 +324,9 @@ public class Deck : MonoBehaviour
 
             c.returnWhenAnimationDone = true;
             c.InitializeAnimation(-moveOffset + timerOffset, c.gameObject.transform.position, cardStartTransform.position);
+            animationsWaitingOn++;
+            c.waitingForAnimation = true;
+
             timerOffset -= animationOffset;
         }
         
@@ -272,6 +346,7 @@ public class Deck : MonoBehaviour
         year++;
         yearText.text = "Year " + year.ToString();
     }
+    
 
     void ShuffleBackCards() {
         List<CardObject> toRemove = new List<CardObject>();
@@ -286,6 +361,9 @@ public class Deck : MonoBehaviour
 
                     c.InitializeAnimation(0, c.transform.position, cardStartTransform.position);
                     c.returnWhenAnimationDone = true;
+                    animationsWaitingOn++;
+                    c.waitingForAnimation = true;
+
                 } else { 
                    DiscardAnimation(c);
                 }
@@ -300,6 +378,7 @@ public class Deck : MonoBehaviour
 
     }
 
+    bool delayedDealHand = false;
     void NextTurn() {
         UpdateYear();
 
@@ -313,8 +392,10 @@ public class Deck : MonoBehaviour
     }
     
     void DiscardAnimation(CardObject c) {
-        c.InitializeAnimation(0, c.transform.position, c.transform.position + Vector3.down * 4.0f);
+        c.InitializeAnimation(0, c.transform.position, c.transform.position + Vector3.down * 8.0f);
         c.returnWhenAnimationDone = true;
+        animationsWaitingOn++;
+        c.waitingForAnimation = true;
     }
 
     void DiscardHandIndex(int i) {
@@ -325,6 +406,7 @@ public class Deck : MonoBehaviour
         DealCard(pos, 2, 0);
 
         CheckEndState();
+        GenerateTopDeck();
     }
 
     void CheckEndState() {
@@ -347,6 +429,12 @@ public class Deck : MonoBehaviour
     CardObject hoveringOver;
 
     void Update() {
+        if (delayedDealHand && animationsWaitingOn <= 1) {
+            delayedDealHand = false;
+            animationsWaitingOn = 0;
+            DealHand();
+        }
+
         if (Input.GetKeyDown(KeyCode.Space)) {
             DiscardHandIndex(2);
         }

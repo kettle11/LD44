@@ -77,14 +77,14 @@ public class Cards
     public void CreateCards() {
         Card testTragedy = MakeTragicEvent("Smelly Socks", 0);
         testTragedy.handSizeAdjustment = 3;
-        testTragedy.handSizeAdjustmentTurns = 1;
-        
+        testTragedy.handSizeAdjustmentTurns = 3;
+
         Card eatCard = MakeCard("Eat", 2);
         Card burpCard = MakeCard("Burp", 0);
 
         Card cry = MakeCard("Cry", 0);
 
-        cry.AddTragicEvent(testTragedy);
+       // cry.AddTragicEvent(testTragedy);
 
         Card poopCard =  MakeCard("Poo", 0);
         Card sleepCard =  MakeCard("Sleep", 0);

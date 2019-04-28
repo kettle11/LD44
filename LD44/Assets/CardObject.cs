@@ -126,6 +126,7 @@ public class CardObject : MonoBehaviour
     public bool flipped = false;
 
     public void InitializeCard(Card cardSet) {
+        waitingForAnimation = false;
         transform.rotation = Quaternion.Euler(0, 0, 0);
 
         returnWhenAnimationDone = false;
@@ -186,12 +187,20 @@ public class CardObject : MonoBehaviour
             currentLine++;
         }
 
-        if (card.handSizeAdjustmentTurns == 1) {
-            string toAppend = "Next turn you only draw " + card.handSizeAdjustment.ToString() + " cards";
+        if (card.handSizeAdjustmentTurns > 0) {
+            string toAppend;
+            
+            if(card.handSizeAdjustmentTurns == 1) {
+                toAppend = "Next turn you only draw " + card.handSizeAdjustment.ToString() + " cards";
+            } else {
+                toAppend = "For " + card.handSizeAdjustmentTurns.ToString() + " turns you only draw "
+                 + card.handSizeAdjustment.ToString() + " cards";
+            }
+
             InitializeLine(lineText[currentLine], lineSprite[currentLine], LineType.TragicEvent, toAppend, 0);
 
             lineText[currentLine].enabled = true;
-            lineSprite[currentLine].enabled = true;
+          //  lineSprite[currentLine].enabled = true;
             currentLine++;
         }
     }
@@ -293,6 +302,8 @@ public class CardObject : MonoBehaviour
 
         fadeTimer += Time.deltaTime;
     }
+
+    public bool waitingForAnimation = false;
 
     public Deck deck;
 
