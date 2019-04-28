@@ -14,6 +14,8 @@ public class Deck : MonoBehaviour
     List<CardObject> cardPool = new List<CardObject>();
 
     List<CardObject> previewCards = new List<CardObject>();
+    
+    List<bool> openHandIndices = new List<bool>();
 
     int cardPoolSize = 40;
     
@@ -25,9 +27,16 @@ public class Deck : MonoBehaviour
 
     public int visibleDeckSize = 0;
     
+    float baseCardWidth; 
     // Start is called before the first frame update
     void Start()
     {
+        for (int i = 0; i < maxHandSize; ++i) {
+            openHandIndices.Add(true);
+        }
+
+        baseCardWidth = cardPrefab.GetComponent<BoxCollider>().size.x;
+
         targetBackgroundColor = backgroundColor;
         allCards = new Cards();
        // AddCardToDeck(allCards.cards["Eat"]);
@@ -81,7 +90,7 @@ public class Deck : MonoBehaviour
         }
 
         if (co.incrementDeckCountWhenDone) {
-            Debug.Log("+1 to Deck Size: " + co.name);
+            //Debug.Log("+1 to Deck Size: " + co.name);
             visibleDeckSize++;
             UpdateDeckSize();
         }
@@ -106,6 +115,7 @@ public class Deck : MonoBehaviour
     }
     
     int startHandSize = 4;
+    int maxHandSize = 5;
 
     void StartGame() {
         UpdateDeckSize();
@@ -143,8 +153,7 @@ public class Deck : MonoBehaviour
 
         float currentX = 0;
 
-        BoxCollider collider = cardPrefab.GetComponent<BoxCollider>();
-        float cardWidth = collider.size.x * .8f;
+        float cardWidth = baseCardWidth * .8f;
 
         foreach(Card card in co.card.choiceCards) {
             CardObject newCard = GetCardFromPool();
@@ -184,8 +193,13 @@ public class Deck : MonoBehaviour
 
     int firstDealCounter = 3;
 
-    void DealHand() {
-        
+    Vector3 CalculatePosition(int index) {
+        BoxCollider collider = cardPrefab.GetComponent<BoxCollider>();
+        Vector3 pos = new Vector3(handCenter.position.x + baseCardWidth * index + index * handPadding, handCenter.position.y, handCenter.position.z);
+        return pos;
+    }
+
+    void DealHand() {        
         firstDealCounter--;
 
         if ((cardsInDeck.Count <= 4 && animationsWaitingOn > 0) || firstDealCounter > 0) {
@@ -194,13 +208,7 @@ public class Deck : MonoBehaviour
         }
 
         BoxCollider collider = cardPrefab.GetComponent<BoxCollider>();
-        float cardWidth = collider.size.x;
-        float halfCardWidth = cardWidth / 2.0f;
-        
-        float leftPos = handCenter.position.x;
-
-        float handOffset = 0;
-        
+                
         int cardsToBeDealt = Mathf.Min(startHandSize, cardsInDeck.Count);
         
         if (handSizeAdjustmentHowManyTurns > 0) {
@@ -209,12 +217,10 @@ public class Deck : MonoBehaviour
         }
 
         for (int i = 0; i < cardsToBeDealt; ++i) {
-            DealCard(
-                new Vector3(leftPos + cardWidth * i + handOffset, handCenter.position.y, handCenter.position.z),
-                i, 
-                cardsToBeDealt
+            DealCard( 
+                cardsToBeDealt, 
+                i
             );
-            handOffset += handPadding;
         }
 
         GenerateTopDeck();
@@ -292,29 +298,41 @@ public class Deck : MonoBehaviour
     int cardsPlayedCount = 0;
     int cardsToPlayPerTurn = 2;
 
-    void DealCard(Vector3 pos, int index, int totalCount) {
+    void DealCard(int totalCount, int animationIndex) {
+        if (cardsInHand.Count >= maxHandSize) {
+            return;
+        }
+
+        int index = GetOpenHandIndex();
+
+        if (index == -1) return;
+
+        Vector3 pos = CalculatePosition(index);
 
         float animationTotal = totalCount * animationOffset + .4f;
         
         if (cardsInDeck.Count > 0) {
+            openHandIndices[index] = false;
+            
             Card card = GetCardFromDeck();
 
             CardObject newCard = GetCardFromPool();
+            newCard.handIndex = index;
             newCard.InitializeCard(card);
 
             newCard.decrementDeckCountWhenStart = true;
-            newCard.InitializeAnimation(-index * animationOffset, cardStartTransform.position, pos);
+            newCard.InitializeAnimation(-animationIndex * animationOffset, cardStartTransform.position, pos);
 
             //newCard.gameObject.SetActive(true);
 
             if (card.type == CardType.Choice) {
-                newCard.StartRotation(-animationTotal + -index * animationOffset, 180, 0);
+                newCard.StartRotation(-animationTotal + -animationIndex * animationOffset, 180, 0);
             } else if (card.type == CardType.Event) {
-                newCard.StartRotation(-animationTotal * 1.3f + -index * animationOffset, 180, 0);
+                newCard.StartRotation(-animationTotal * 1.3f + -animationIndex * animationOffset, 180, 0);
                 //newCard.transform.rotation = Quaternion.Euler(0, 180, 0);
                 //newCard.StartHover();
             } else if (card.type == CardType.TragicEvent) {
-                newCard.StartRotation(-animationTotal * 1.6f + -index * animationOffset, 180, 0);
+                newCard.StartRotation(-animationTotal * 1.6f + -animationIndex * animationOffset, 180, 0);
                 //newCard.transform.rotation = Quaternion.Euler(0, 180, 0);
                 //newCard.StartHover();
             }
@@ -323,8 +341,19 @@ public class Deck : MonoBehaviour
         }
     }
     
+    int GetOpenHandIndex() {
+        for (int i = 0; i < maxHandSize; ++i) {
+            if (openHandIndices[i]) {
+                openHandIndices[i] = false;
+                return i;
+            }
+        }
+        return -1;
+    }
+
     void ActivateCard(CardObject cardObject) {
-        
+        openHandIndices[cardObject.handIndex] = true;
+
         foreach(Card c in cardObject.card.choiceCards) {
             if (!c.onetime || !allCards.CheckPlayed(c)) {
                 AddCardToDeck(c);
@@ -380,10 +409,26 @@ public class Deck : MonoBehaviour
         previewCards.Clear();
 
         cardsInHand.Remove(cardObject);
-        ReturnCardToPool(cardObject);
-        UpdateDeckSize();
+        openHandIndices[cardObject.handIndex] = true;
 
-        cardsPlayedCount++;
+        ReturnCardToPool(cardObject);
+            
+        if(cardObject.card.cardDiscard > 0) {
+            DiscardRandomCards(cardObject.card.cardDiscard);
+        }
+
+        if(cardObject.card.cardDraw > 0) {
+            for (int i = 0; i < cardObject.card.cardDraw; ++i) {
+                DrawCard();
+            }
+        }
+
+        UpdateDeckSize();    
+
+
+        if(cardObject.card.type == CardType.Choice) {
+            cardsPlayedCount++;
+        }
         CheckEndState();
         FlashColor(cardObject.GetPrimaryColor(), .3f);
     }   
@@ -422,6 +467,7 @@ public class Deck : MonoBehaviour
 
         foreach(CardObject co in toRemove) {
             cardsInHand.Remove(co);
+            openHandIndices[co.handIndex] = true;
         }
 
     }
@@ -447,14 +493,29 @@ public class Deck : MonoBehaviour
     }
 
     void DiscardHandIndex(int i) {
-        Vector3 pos = cardsInHand[i].transform.position;
         DiscardAnimation(cardsInHand[i]);
-        cardsInHand.Remove(cardsInHand[i]);
 
-        DealCard(pos, 2, 0);
+        cardsInHand.Remove(cardsInHand[i]);
+        openHandIndices[i] = true;
+
+        DealCard(0, 0);
 
         CheckEndState();
         GenerateTopDeck();
+    }
+
+    void DiscardCard(CardObject c) {
+        DiscardAnimation(c);
+        cardsInHand.Remove(c);
+        openHandIndices[c.handIndex] = true;
+        CheckEndState();
+    }
+
+    void DiscardRandomCards(int count) {
+        for (int i = 0; i < count && cardsInHand.Count > 0; ++i) {
+            CardObject randomCard = cardsInHand[Random.Range(0, cardsInHand.Count)];
+            DiscardCard(randomCard);
+        }
     }
 
     void CheckEndState() {
@@ -467,16 +528,12 @@ public class Deck : MonoBehaviour
         if ((cardsPlayedCount >= cardsToPlayPerTurn || cardsInHand.Count == 0)) {
             if (eventCardCount == 0) {
                 NextTurn();
-            } else {
-                ShuffleBackCards();
             }
         }
     }
 
 
     CardObject hoveringOver;
-
-
 
     public AnimationCurve cameraColorPulse;
 
@@ -508,6 +565,14 @@ public class Deck : MonoBehaviour
         Camera.main.backgroundColor = Color.Lerp( Camera.main.backgroundColor , targetBackgroundColor, Time.deltaTime / backgroundFadeSpeed);
     }
     
+    void DrawCard() {
+        if (openHandIndices.Count > 0 && cardsInDeck.Count > 0) {
+            DealCard(
+                0,
+                0
+            );
+        }
+    }
 
     void Update() {
         MainCameraFlashFade();
@@ -518,7 +583,15 @@ public class Deck : MonoBehaviour
         }
 
         if (Input.GetKeyDown(KeyCode.Space)) {
-            DiscardHandIndex(2);
+            //DiscardHandIndex(2);
+            DrawCard();
+        }
+
+        
+        if (Input.GetKeyDown(KeyCode.D)) {
+          //  DiscardHandIndex(2);
+            DiscardRandomCards(2);
+           // DrawCard();
         }
 
         Ray mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition);

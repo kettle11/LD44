@@ -22,9 +22,10 @@ public class Card
     public int handSizeAdjustmentTurns;
     public int handSizeAdjustment; 
 
-    public CardType type;
+    public int cardDraw = 0;
+    public int cardDiscard = 0;
 
-    public bool isEvent; // An "Event" is a tragic event with this flag set.
+    public CardType type;
 
     public Card(string nameSet, int lifespanSet) {
         name = nameSet;
@@ -55,6 +56,8 @@ public class Card
         tragicEvents = new List<Card>(card.tragicEvents);
         events = new List<Card>(card.events);
         type = card.type;
+        cardDraw = card.cardDraw;
+        cardDiscard = card.cardDiscard;
     }
 }
 
@@ -94,6 +97,8 @@ public class Cards
     public void CreateCards() {
         Card birth = MakeEvent("Birth");
 
+        birth.cardDiscard = 2;
+        birth.cardDraw = 2;
         Card testTragedy = MakeTragicEvent("Smelly Socks");
         testTragedy.handSizeAdjustment = 3;
         testTragedy.handSizeAdjustmentTurns = 3;

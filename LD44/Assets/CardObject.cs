@@ -74,6 +74,7 @@ public class CardObject : MonoBehaviour
     public float baseScale;
     float actualBaseScale;
 
+    public int handIndex;
     public MeshRenderer backRenderer;
     public MeshRenderer shadowRenderer;
     void Awake() {
@@ -179,7 +180,7 @@ public class CardObject : MonoBehaviour
     
         int currentLine = 0;
 
-        if(card.tragicEvents.Count == 0 && card.events.Count == 0) currentLine = 1;
+        if(card.type == CardType.Choice && card.tragicEvents.Count == 0 && card.events.Count == 0) currentLine = 1;
         
         for (int i = 0; i < 3; ++i) {
             lineText[i].enabled = false;
@@ -241,6 +242,49 @@ public class CardObject : MonoBehaviour
           //  lineSprite[currentLine].enabled = true;
             currentLine++;
         }
+        
+         if (card.cardDiscard > 0) {
+            LineType lineType = LineType.Event;
+
+            if (card.type == CardType.TragicEvent) {
+                lineType = LineType.TragicEvent;
+            }
+
+             string toAppend;
+            
+            if(card.cardDiscard == 1) {
+                toAppend = "Discard 1 random card";
+            } else {
+                toAppend = "Discard " + card.cardDraw.ToString() + " random cards";
+            }
+
+            InitializeLine(lineText[currentLine], lineSprite[currentLine], lineType, toAppend, 0);
+
+            lineText[currentLine].enabled = true;
+            currentLine++;
+        }
+
+        if (card.cardDraw > 0) {
+            LineType lineType = LineType.Event;
+
+            if (card.type == CardType.TragicEvent) {
+                lineType = LineType.TragicEvent;
+            }
+
+             string toAppend;
+            
+            if(card.cardDraw == 1) {
+                toAppend = "Draw 1 card";
+            } else {
+                toAppend = "Draw " + card.cardDraw.ToString() + " cards";
+            }
+
+            InitializeLine(lineText[currentLine], lineSprite[currentLine], lineType, toAppend, 0);
+
+            lineText[currentLine].enabled = true;
+            currentLine++;
+        }
+
     }
     
 
@@ -377,7 +421,7 @@ public class CardObject : MonoBehaviour
                     decrementDeckCountWhenStart = false;
                     deck.visibleDeckSize--;
                     deck.UpdateDeckSize();
-                    Debug.Log("-1 to Deck Size: " + card.name);
+                    //Debug.Log("-1 to Deck Size: " + card.name);
                 }
                 transform.position = Vector3.Lerp(startPos, targetPos, animationCurve.Evaluate(timer / timerMax));
             }
