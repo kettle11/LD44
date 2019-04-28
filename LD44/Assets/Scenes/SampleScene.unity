@@ -206,7 +206,7 @@ MonoBehaviour:
   m_outlineColor:
     serializedVersion: 2
     rgba: 4278190080
-  m_fontSize: 29.3
+  m_fontSize: 39
   m_fontSizeBase: 20
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -244,7 +244,7 @@ MonoBehaviour:
   m_firstVisibleCharacter: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 22.326603, w: 2.7832859}
+  m_margin: {x: 0, y: 0, z: -124.50375, w: 2.7832859}
   m_textInfo:
     textComponent: {fileID: 21695194}
     characterCount: 12
@@ -500,9 +500,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f53ec9bcab414ae690e57b207a5b93b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  turnStrings:
+  - Click the choice card
+  - 
   cardPrefab: {fileID: -7308526297068652890, guid: 10aa526042b484e63ad4647ab791ad64,
     type: 3}
   animationsWaitingOn: 0
+  visibleDeckSize: 0
   deckCountText: {fileID: 2003697407}
   handSizeAdjustment: 3
   handSizeAdjustmentHowManyTurns: 0
@@ -513,6 +517,7 @@ MonoBehaviour:
   handCenter: {fileID: 274481471}
   cardStartTransform: {fileID: 900274038}
   yearText: {fileID: 1438120620}
+  tipText: {fileID: 21695194}
   cameraColorPulse:
     serializedVersion: 2
     m_Curve: []

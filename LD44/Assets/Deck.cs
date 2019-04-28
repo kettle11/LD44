@@ -6,6 +6,8 @@ using UnityEngine.UI;
 
 public class Deck : MonoBehaviour
 {
+    public List<string> turnStrings = new List<string>();
+    
     public CardObject cardPrefab;
 
     List<Card> cardsInDeck = new List<Card>();
@@ -21,7 +23,7 @@ public class Deck : MonoBehaviour
     
     Cards allCards;
     
-    int year = 1;
+    int year = 0;
 
     public int animationsWaitingOn = 0;
 
@@ -120,6 +122,7 @@ public class Deck : MonoBehaviour
     void StartGame() {
         UpdateDeckSize();
         DealHand();
+        UpdateYear();
     }
 
     public int handSizeAdjustment = 3;
@@ -434,9 +437,15 @@ public class Deck : MonoBehaviour
     }   
 
     public TMPro.TextMeshProUGUI yearText;
+    public TMPro.TextMeshProUGUI tipText;
+
     void UpdateYear() {
-        year++;
-        yearText.text = "Year " + year.ToString();
+
+        if (turnStrings.Count > year) {
+            tipText.SetText(turnStrings[year]);
+        }
+       // year++;
+        yearText.text = "Year " + (year+1).ToString();
     }
     
 
@@ -474,6 +483,7 @@ public class Deck : MonoBehaviour
 
     bool delayedDealHand = false;
     void NextTurn() {
+        year++;
         UpdateYear();
 
         cardsPlayedCount = 0;
