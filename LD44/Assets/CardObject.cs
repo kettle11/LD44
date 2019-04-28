@@ -27,6 +27,17 @@ public class CardObject : MonoBehaviour
     public Color choiceColor;
     public Color choiceTextColor;
 
+    public Texture2D choiceBackMaterial;
+    public Texture2D choiceFrontTexture;
+
+    public Color tragicEventColor;
+    public Color tragicEventTextColor;
+    
+    public Texture2D tragicEventBackMaterial;
+    public Texture2D tragicEventFrontTexture;
+
+    public MeshRenderer frontRenderer;
+
     public Sprite icon1;
     public Sprite icon2;
     public Sprite icon3;
@@ -47,7 +58,8 @@ public class CardObject : MonoBehaviour
 
     public enum LineType
     {
-        Choice
+        Choice,
+        TragicEvent
     };
 
     float startZ;
@@ -80,6 +92,10 @@ public class CardObject : MonoBehaviour
             text.color = choiceTextColor;
             text.text = stringSet;
             sprite.color = choiceColor;
+        } else if (lineType == LineType.TragicEvent) {
+            text.color = tragicEventTextColor;
+            text.text = stringSet;
+            sprite.color = tragicEventColor;
         }
 
         if (count == 1) {
@@ -98,8 +114,8 @@ public class CardObject : MonoBehaviour
     }
 
     private string CreateString(int count, string word) {
-        string toAppend = "+" + card.choiceCards.Count.ToString() + " " + word;
-        if (card.choiceCards.Count > 1) {toAppend += 's';}
+        string toAppend = "+" + count.ToString() + " " + word;
+        if (count> 1) {toAppend += 's';}
         toAppend += "\n";
         return toAppend;
     }
@@ -107,6 +123,8 @@ public class CardObject : MonoBehaviour
     public bool flipped = false;
 
     public void InitializeCard(Card cardSet) {
+        transform.rotation = Quaternion.Euler(0, 0, 0);
+
         returnWhenAnimationDone = false;
         runFadeOut = false;
         runRotate = false;
@@ -129,16 +147,37 @@ public class CardObject : MonoBehaviour
             lifespanText.text = card.lifespan.ToString();
         }
         
-        int currentLine = 1;
+    
+        int currentLine = 0;
+
+        if(card.tragicEvents.Count == 0) currentLine = 1;
         
         for (int i = 0; i < 3; ++i) {
             lineText[i].enabled = false;
             lineSprite[i].enabled = false;
         }
 
+        if (card.type == CardType.Choice) {
+            backMaterial.mainTexture = choiceBackMaterial;
+            frontRenderer.material.mainTexture = choiceFrontTexture;
+        } else if (card.type == CardType.TragicEvent) {
+            backMaterial.mainTexture = tragicEventBackMaterial;
+            frontRenderer.material.mainTexture = tragicEventFrontTexture;
+        }
+
         if (card.choiceCards.Count > 0) {
             string toAppend = CreateString(card.choiceCards.Count, "Choice");
             InitializeLine(lineText[currentLine], lineSprite[currentLine], LineType.Choice, toAppend, card.choiceCards.Count);
+            lineText[currentLine].enabled = true;
+            lineSprite[currentLine].enabled = true;
+            currentLine++;
+        }
+
+        if (card.tragicEvents.Count > 0) {
+            int count = card.tragicEvents.Count;
+            string toAppend = CreateString(count, "Tragic Event");
+            InitializeLine(lineText[currentLine], lineSprite[currentLine], LineType.TragicEvent, toAppend, count);
+
             lineText[currentLine].enabled = true;
             lineSprite[currentLine].enabled = true;
             currentLine++;

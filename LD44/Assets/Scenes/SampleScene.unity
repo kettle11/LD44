@@ -558,6 +558,7 @@ MonoBehaviour:
   handPadding: 0.4
   previewCardPos: {fileID: 1083785578}
   choicePadding: 0.13
+  animationOffset: 0.15
   handCenter: {fileID: 274481471}
   cardStartTransform: {fileID: 900274038}
   yearText: {fileID: 1438120620}

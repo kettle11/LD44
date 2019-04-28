@@ -1,5 +1,10 @@
 using System.Collections.Generic;
 
+public enum CardType
+{
+    Choice,
+    TragicEvent
+};
 
 public class Card
 {
@@ -10,21 +15,32 @@ public class Card
     public bool onetime = false;
 
     public List<Card> choiceCards;
+    public List<Card> tragicEvents;
+
+
+    public CardType type;
 
     public Card(string nameSet, int lifespanSet) {
         name = nameSet;
         lifespan = lifespanSet;
         choiceCards = new List<Card>();
+        tragicEvents = new List<Card>();
     }
 
     public void AddChoiceCard(Card card) {
         choiceCards.Add(card);
     }
 
+    public void AddTragicEvent(Card card) {
+        tragicEvents.Add(card);
+    }
+
     public Card(Card card) {
         name = card.name;
         lifespan = card.lifespan;
         choiceCards = new List<Card>(card.choiceCards);
+        tragicEvents = new List<Card>(card.tragicEvents);
+        type = card.type;
     }
 }
 
@@ -35,8 +51,15 @@ public class Cards
 
     public Card MakeCard(string name, int lifespan) {
         Card newCard = new Card(name, lifespan);
+        newCard.type = CardType.Choice;
         cards.Add(name, newCard);
         return newCard;
+    }
+
+    public Card MakeTragicEvent(string name, int lifespan) {
+        Card card = MakeCard(name, lifespan);
+        card.type = CardType.TragicEvent;
+        return card;
     }
 
     public void OneTime(Card card) {
@@ -48,10 +71,14 @@ public class Cards
     }
 
     public void CreateCards() {
+        Card testTragedy = MakeTragicEvent("Test Tragedy", 0);
+
         Card eatCard = MakeCard("Eat", 0);
         Card burpCard = MakeCard("Burp", 0);
 
         Card cry = MakeCard("Cry", 0);
+
+        cry.AddTragicEvent(testTragedy);
 
         Card poopCard =  MakeCard("Poo", 0);
         Card sleepCard =  MakeCard("Sleep", 0);

@@ -15,7 +15,7 @@ public class Deck : MonoBehaviour
 
     List<CardObject> previewCards = new List<CardObject>();
 
-    int cardPoolSize = 10;
+    int cardPoolSize = 40;
     
     Cards allCards;
     
@@ -27,9 +27,11 @@ public class Deck : MonoBehaviour
         allCards = new Cards();
         //AddCardToDeck(allCards.cards["Eat"]);
         AddCardToDeck(allCards.cards["Cry"]);
-        AddCardToDeck(allCards.cards["Eat"]);
-        AddCardToDeck(allCards.cards["Cry"]);
-        AddCardToDeck(allCards.cards["Eat"]);
+        AddCardToDeck(allCards.cards["Test Tragedy"]);
+
+       // AddCardToDeck(allCards.cards["Eat"]);
+        //AddCardToDeck(allCards.cards["Cry"]);
+        //AddCardToDeck(allCards.cards["Eat"]);
 
         for (int i = 0; i < cardPoolSize; ++i) {
             CardObject cardObject = GameObject.Instantiate(cardPrefab, Vector3.zero, Quaternion.identity);
@@ -88,6 +90,21 @@ public class Deck : MonoBehaviour
     public float choicePadding = .1f;
 
 
+    void CreatePreviewCard(CardObject newCard, ref float currentX, float cardWidth) {
+        newCard.gameObject.transform.rotation = Quaternion.Euler(0, 180, 0);
+
+        newCard.isPreview = true;
+        newCard.baseScale = .8f;
+        newCard.gameObject.transform.position = previewCardPos.position + Vector3.right * currentX;
+        newCard.timer = newCard.timerMax;
+        newCard.hoverTimer = newCard.hoverTimerMax;
+
+        newCard.targetPos = newCard.gameObject.transform.position;
+
+        currentX += cardWidth + choicePadding;
+
+        previewCards.Add(newCard);
+    }
     void GeneratePreviewCards(CardObject co) {
        // Debug.Log("Generating Preview Cards");
         HidePreviewCards();
@@ -99,20 +116,16 @@ public class Deck : MonoBehaviour
 
         foreach(Card card in co.card.choiceCards) {
             CardObject newCard = GetCardFromPool();
-            
-            newCard.gameObject.transform.rotation = Quaternion.Euler(0, 180, 0);
             newCard.InitializeCard(card);
-            newCard.isPreview = true;
-            newCard.baseScale = .8f;
-            newCard.gameObject.transform.position = previewCardPos.position + Vector3.right * currentX;
-            newCard.timer = newCard.timerMax;
-            newCard.hoverTimer = newCard.hoverTimerMax;
+            CreatePreviewCard(newCard, ref currentX, cardWidth);
+        }
 
-            newCard.targetPos = newCard.gameObject.transform.position;
-
-            currentX += cardWidth + choicePadding;
-
-            previewCards.Add(newCard);
+        currentX += choicePadding;
+        
+        foreach(Card card in co.card.tragicEvents) {
+            CardObject newCard = GetCardFromPool();
+            newCard.InitializeCard(card);
+            CreatePreviewCard(newCard, ref currentX, cardWidth);
         }
     }
 
@@ -173,7 +186,7 @@ public class Deck : MonoBehaviour
 
     void DealCard(Vector3 pos, int index, int totalCount) {
 
-        float animationTotal = totalCount * animationOffset;
+        float animationTotal = totalCount * animationOffset + .4f;
         
         if (cardsInDeck.Count > 0) {
             Card card = GetCardFromDeck();
@@ -184,15 +197,29 @@ public class Deck : MonoBehaviour
             newCard.InitializeAnimation(-index * animationOffset, cardStartTransform.position, pos);
             //newCard.gameObject.SetActive(true);
 
-            newCard.StartRotation(-animationTotal + -index * animationOffset, 180, 0);
-
+            if (card.type == CardType.Choice) {
+                newCard.StartRotation(-animationTotal + -index * animationOffset, 180, 0);
+            } else {
+                newCard.transform.rotation = Quaternion.Euler(0, 180, 0);
+            }
+            
             cardsInHand.Add(newCard);
         }
     }
-
+    
     void ActivateCard(CardObject cardObject) {
 
         foreach(Card c in cardObject.card.choiceCards) {
+            if (!c.onetime || !allCards.CheckPlayed(c)) {
+                AddCardToDeck(c);
+
+                if (c.onetime) {
+                    allCards.OneTime(cardObject.card);
+                }
+            }
+        }
+
+        foreach(Card c in cardObject.card.tragicEvents) {
             if (!c.onetime || !allCards.CheckPlayed(c)) {
                 AddCardToDeck(c);
 
@@ -206,11 +233,17 @@ public class Deck : MonoBehaviour
         float moveOffset = previewCards.Count * animationOffset + .5f;
 
         foreach(CardObject c in previewCards) {
-            c.StartRotation(timerOffset, 180, 0);
+            if (c.card.type == CardType.Choice) {
+                c.StartRotation(timerOffset, 180, 0);
+            }
+
+            c.returnWhenAnimationDone = true;
             c.InitializeAnimation(-moveOffset + timerOffset, c.gameObject.transform.position, cardStartTransform.position);
             timerOffset -= animationOffset;
         }
         
+        previewCards.Clear();
+
         cardsInHand.Remove(cardObject);
         ReturnCardToPool(cardObject);
         UpdateDeckSize();
