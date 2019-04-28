@@ -23,6 +23,8 @@ public class Deck : MonoBehaviour
 
     public int animationsWaitingOn = 0;
 
+    public int visibleDeckSize = 0;
+    
     // Start is called before the first frame update
     void Start()
     {
@@ -45,13 +47,25 @@ public class Deck : MonoBehaviour
             cardPool.Add(cardObject);
         }
 
+        visibleDeckSize = cardsInDeck.Count;
+
         StartGame();
 
+        UpdateDeckSize();
     }
 
     public Text deckCountText;
-    void UpdateDeckSize() {
-        deckCountText.text = cardsInDeck.Count.ToString();
+    public void UpdateDeckSize() {
+        int num = visibleDeckSize;
+        if(visibleDeckSize < 0) {
+            num = 0;
+        }
+        string text = num.ToString() + " card";
+        if (num != 1) {
+            text += "s";
+        }
+
+        deckCountText.text = text;
     }
 
     public void ReturnCardToPool(CardObject co) {
@@ -65,6 +79,13 @@ public class Deck : MonoBehaviour
         if (co.waitingForAnimation) {
             animationsWaitingOn--;
         }
+
+        if (co.incrementDeckCountWhenDone) {
+            Debug.Log("+1 to Deck Size: " + co.name);
+            visibleDeckSize++;
+            UpdateDeckSize();
+        }
+
      //   Debug.Log("returned card to pool");
     }
 
@@ -199,9 +220,10 @@ public class Deck : MonoBehaviour
         GenerateTopDeck();
 
         
-        AddCardToDeck(allCards.cards["Smelly Socks"]);
-        GenerateTopDeck();
-        UpdateDeckSize();
+       // AddCardToDeck(allCards.cards["Smelly Socks"]);
+      //  visibleDeckSize++;
+      //  GenerateTopDeck();
+       // UpdateDeckSize();
     }
 
     CardObject topCard;
@@ -280,6 +302,7 @@ public class Deck : MonoBehaviour
             CardObject newCard = GetCardFromPool();
             newCard.InitializeCard(card);
 
+            newCard.decrementDeckCountWhenStart = true;
             newCard.InitializeAnimation(-index * animationOffset, cardStartTransform.position, pos);
 
             //newCard.gameObject.SetActive(true);
@@ -346,6 +369,7 @@ public class Deck : MonoBehaviour
             }
 
             c.returnWhenAnimationDone = true;
+            c.incrementDeckCountWhenDone = true;
             c.InitializeAnimation(-moveOffset + timerOffset, c.gameObject.transform.position, cardStartTransform.position);
             animationsWaitingOn++;
             c.waitingForAnimation = true;
@@ -383,6 +407,7 @@ public class Deck : MonoBehaviour
                     AddCardToDeck(c.card);
 
                     c.InitializeAnimation(0, c.transform.position, cardStartTransform.position);
+                    c.incrementDeckCountWhenDone = true;
                     c.returnWhenAnimationDone = true;
                     animationsWaitingOn++;
                     c.waitingForAnimation = true;

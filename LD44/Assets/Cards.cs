@@ -104,7 +104,7 @@ public class Cards
         Card cry = MakeCard("Cry", 0);
 
         cry.AddEvent(birth);
-        
+
        // cry.AddTragicEvent(testTragedy);
 
         Card poopCard =  MakeCard("Poo", 0);
@@ -159,7 +159,6 @@ public class Cards
         Card study0 = new Card("Study", 1);
 
         graduate1.AddChoiceCard(study0);
-
     }
 
     public Cards() {

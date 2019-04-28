@@ -149,6 +149,8 @@ public class CardObject : MonoBehaviour
     public bool flipped = false;
 
     public void InitializeCard(Card cardSet) {
+        decrementDeckCountWhenStart = false;
+        incrementDeckCountWhenDone = false;
         waitingForAnimation = false;
         transform.rotation = Quaternion.Euler(0, 0, 0);
 
@@ -279,6 +281,9 @@ public class CardObject : MonoBehaviour
     public float maxZ = -.1f;
 
     public float maxScale = 0.2f;
+    
+    public bool incrementDeckCountWhenDone;
+    public bool decrementDeckCountWhenStart;
 
     public void updateShadow() {
         float amount = transform.position.z / maxZ;
@@ -368,6 +373,12 @@ public class CardObject : MonoBehaviour
         if (!hovering) {
 
             if (timer > 0) {
+                if (decrementDeckCountWhenStart) {
+                    decrementDeckCountWhenStart = false;
+                    deck.visibleDeckSize--;
+                    deck.UpdateDeckSize();
+                    Debug.Log("-1 to Deck Size: " + card.name);
+                }
                 transform.position = Vector3.Lerp(startPos, targetPos, animationCurve.Evaluate(timer / timerMax));
             }
 
@@ -385,7 +396,6 @@ public class CardObject : MonoBehaviour
         if (timer > timerMax && !hoverReady && rotationTimer > rotationTimerMax) {
             originalPos = transform.position;
             hoverReady = true;
-            Debug.Log("HOVER READY");
         }
 
         if (returnWhenAnimationDone && timer > timerMax && fadeTimer > fadeTimerMax) {
