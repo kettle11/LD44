@@ -77,7 +77,6 @@ public class Deck : MonoBehaviour
     
     int startHandSize = 4;
 
-
     void StartGame() {
         UpdateDeckSize();
         DealHand();
@@ -199,8 +198,10 @@ public class Deck : MonoBehaviour
 
             if (card.type == CardType.Choice) {
                 newCard.StartRotation(-animationTotal + -index * animationOffset, 180, 0);
-            } else {
-                newCard.transform.rotation = Quaternion.Euler(0, 180, 0);
+            } else if (card.type == CardType.TragicEvent) {
+                newCard.StartRotation(-animationTotal * 1.6f + -index * animationOffset, 180, 0);
+                //newCard.transform.rotation = Quaternion.Euler(0, 180, 0);
+                //newCard.StartHover();
             }
             
             cardsInHand.Add(newCard);
@@ -208,7 +209,7 @@ public class Deck : MonoBehaviour
     }
     
     void ActivateCard(CardObject cardObject) {
-
+        
         foreach(Card c in cardObject.card.choiceCards) {
             if (!c.onetime || !allCards.CheckPlayed(c)) {
                 AddCardToDeck(c);
@@ -250,7 +251,14 @@ public class Deck : MonoBehaviour
 
         cardsPlayedCount++;
 
-        if (cardsPlayedCount >= cardsToPlayPerTurn || cardsInHand.Count == 0) {
+        int eventCardCount = 0;
+        foreach(CardObject card in cardsInHand) {
+            if (card.card.type == CardType.TragicEvent) {
+                eventCardCount++;
+            }
+        }
+
+        if ((cardsPlayedCount >= cardsToPlayPerTurn || cardsInHand.Count == 0) && eventCardCount == 0) {
             NextTurn();
         }
     }   
@@ -323,6 +331,10 @@ public class Deck : MonoBehaviour
 
             hoveringOver = null;
         }
+    }
+
+    void TriggerTragicEvent(CardObject card) {
+       // card.StartRotation()
     }
 
 }
