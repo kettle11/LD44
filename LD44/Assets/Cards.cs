@@ -17,6 +17,8 @@ public class Card
     public List<Card> choiceCards;
     public List<Card> tragicEvents;
 
+    public int handSizeAdjustmentTurns;
+    public int handSizeAdjustment; 
 
     public CardType type;
 
@@ -36,6 +38,8 @@ public class Card
     }
 
     public Card(Card card) {
+        handSizeAdjustment = card.handSizeAdjustment;
+        handSizeAdjustmentTurns = card.handSizeAdjustmentTurns;
         name = card.name;
         lifespan = card.lifespan;
         choiceCards = new List<Card>(card.choiceCards);
@@ -71,9 +75,11 @@ public class Cards
     }
 
     public void CreateCards() {
-        Card testTragedy = MakeTragicEvent("Test Tragedy", 0);
-
-        Card eatCard = MakeCard("Eat", 0);
+        Card testTragedy = MakeTragicEvent("Smelly Socks", 0);
+        testTragedy.handSizeAdjustment = 3;
+        testTragedy.handSizeAdjustmentTurns = 1;
+        
+        Card eatCard = MakeCard("Eat", 2);
         Card burpCard = MakeCard("Burp", 0);
 
         Card cry = MakeCard("Cry", 0);

@@ -25,11 +25,11 @@ public class Deck : MonoBehaviour
     void Start()
     {
         allCards = new Cards();
-        //AddCardToDeck(allCards.cards["Eat"]);
+        AddCardToDeck(allCards.cards["Eat"]);
         AddCardToDeck(allCards.cards["Cry"]);
-        AddCardToDeck(allCards.cards["Test Tragedy"]);
+        AddCardToDeck(allCards.cards["Smelly Socks"]);
 
-       // AddCardToDeck(allCards.cards["Eat"]);
+        AddCardToDeck(allCards.cards["Eat"]);
         //AddCardToDeck(allCards.cards["Cry"]);
         //AddCardToDeck(allCards.cards["Eat"]);
 
@@ -81,6 +81,9 @@ public class Deck : MonoBehaviour
         UpdateDeckSize();
         DealHand();
     }
+
+    public int handSizeAdjustment = 3;
+    public int handSizeAdjustmentHowManyTurns = 0;
 
     public float handPadding;
 
@@ -152,8 +155,13 @@ public class Deck : MonoBehaviour
         float handOffset = 0;
         
         int cardsToBeDealt = Mathf.Min(startHandSize, cardsInDeck.Count);
+        
+        if (handSizeAdjustmentHowManyTurns > 0) {
+            cardsToBeDealt = handSizeAdjustment;
+            handSizeAdjustmentHowManyTurns--;
+        }
 
-        for (int i = 0; i < startHandSize; ++i) {
+        for (int i = 0; i < cardsToBeDealt; ++i) {
             DealCard(
                 new Vector3(leftPos + cardWidth * i + handOffset, handCenter.position.y, handCenter.position.z),
                 i, 
@@ -230,6 +238,11 @@ public class Deck : MonoBehaviour
             }
         }
 
+        if (cardObject.card.handSizeAdjustmentTurns > 0) {
+            handSizeAdjustment = cardObject.card.handSizeAdjustment;
+            handSizeAdjustmentHowManyTurns = cardObject.card.handSizeAdjustmentTurns;
+        }
+
         float timerOffset = 0;
         float moveOffset = previewCards.Count * animationOffset + .5f;
 
@@ -250,17 +263,8 @@ public class Deck : MonoBehaviour
         UpdateDeckSize();
 
         cardsPlayedCount++;
+        CheckEndState();
 
-        int eventCardCount = 0;
-        foreach(CardObject card in cardsInHand) {
-            if (card.card.type == CardType.TragicEvent) {
-                eventCardCount++;
-            }
-        }
-
-        if ((cardsPlayedCount >= cardsToPlayPerTurn || cardsInHand.Count == 0) && eventCardCount == 0) {
-            NextTurn();
-        }
     }   
 
     public TMPro.TextMeshProUGUI yearText;
@@ -269,30 +273,82 @@ public class Deck : MonoBehaviour
         yearText.text = "Year " + year.ToString();
     }
 
+    void ShuffleBackCards() {
+        List<CardObject> toRemove = new List<CardObject>();
+
+       foreach (CardObject c in cardsInHand) {
+            if (c.card.type == CardType.Choice) {
+                //ReturnCardToPool(c);
+
+                if (c.card.lifespan > 0) {
+                    c.card.lifespan--;
+                    AddCardToDeck(c.card);
+
+                    c.InitializeAnimation(0, c.transform.position, cardStartTransform.position);
+                    c.returnWhenAnimationDone = true;
+                } else { 
+                   DiscardAnimation(c);
+                }
+
+                toRemove.Add(c);
+            }
+        }
+
+        foreach(CardObject co in toRemove) {
+            cardsInHand.Remove(co);
+        }
+
+    }
+
     void NextTurn() {
         UpdateYear();
 
         cardsPlayedCount = 0;
-        foreach (CardObject c in cardsInHand) {
-            ReturnCardToPool(c);
-
-            if (c.card.lifespan > 0) {
-                c.card.lifespan--;
-                AddCardToDeck(c.card);
-            }
-        }
+        ShuffleBackCards();
 
         previewCards.Clear();
         cardsInHand.Clear();
 
         DealHand();
     }
+    
+    void DiscardAnimation(CardObject c) {
+        c.InitializeAnimation(0, c.transform.position, c.transform.position + Vector3.down * 4.0f);
+        c.returnWhenAnimationDone = true;
+    }
+
+    void DiscardHandIndex(int i) {
+        Vector3 pos = cardsInHand[i].transform.position;
+        DiscardAnimation(cardsInHand[i]);
+        cardsInHand.Remove(cardsInHand[i]);
+
+        DealCard(pos, 2, 0);
+
+        CheckEndState();
+    }
+
+    void CheckEndState() {
+        int eventCardCount = 0;
+        foreach(CardObject card in cardsInHand) {
+            if (card.card.type == CardType.TragicEvent) {
+                eventCardCount++;
+            }
+        }
+        if ((cardsPlayedCount >= cardsToPlayPerTurn || cardsInHand.Count == 0)) {
+            if (eventCardCount == 0) {
+                NextTurn();
+            } else {
+                ShuffleBackCards();
+            }
+        }
+    }
+
 
     CardObject hoveringOver;
 
     void Update() {
         if (Input.GetKeyDown(KeyCode.Space)) {
-            //DealCard();
+            DiscardHandIndex(2);
         }
 
         Ray mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition);

@@ -52,6 +52,7 @@ public class CardObject : MonoBehaviour
         targetPos = target;
         timer = timerSet;
         rotationTimer = 0;
+        hoverReady = false;
 
         transform.position = start;
     }
@@ -110,6 +111,8 @@ public class CardObject : MonoBehaviour
 
         if (count > 0) {
             sprite.enabled = true;
+        } else {
+            sprite.enabled = false;
         }
     }
 
@@ -164,7 +167,7 @@ public class CardObject : MonoBehaviour
             backMaterial.mainTexture = tragicEventBackMaterial;
             frontRenderer.material.mainTexture = tragicEventFrontTexture;
         }
-
+    
         if (card.choiceCards.Count > 0) {
             string toAppend = CreateString(card.choiceCards.Count, "Choice");
             InitializeLine(lineText[currentLine], lineSprite[currentLine], LineType.Choice, toAppend, card.choiceCards.Count);
@@ -177,6 +180,15 @@ public class CardObject : MonoBehaviour
             int count = card.tragicEvents.Count;
             string toAppend = CreateString(count, "Tragic Event");
             InitializeLine(lineText[currentLine], lineSprite[currentLine], LineType.TragicEvent, toAppend, count);
+
+            lineText[currentLine].enabled = true;
+            lineSprite[currentLine].enabled = true;
+            currentLine++;
+        }
+
+        if (card.handSizeAdjustmentTurns == 1) {
+            string toAppend = "Next turn you only draw " + card.handSizeAdjustment.ToString() + " cards";
+            InitializeLine(lineText[currentLine], lineSprite[currentLine], LineType.TragicEvent, toAppend, 0);
 
             lineText[currentLine].enabled = true;
             lineSprite[currentLine].enabled = true;
@@ -295,6 +307,11 @@ public class CardObject : MonoBehaviour
               + startRotation;
 
             transform.rotation = Quaternion.Euler(0,angle, 0);
+        }
+
+        if (rotationTimer > rotationTimerMax) {
+            runRotate = false;
+            rotationTimer = 0;
         }
 
         rotationTimer += Time.deltaTime;
