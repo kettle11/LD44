@@ -19,7 +19,7 @@ public class CardObject : MonoBehaviour
     public GameObject dropShadowClose;
     public GameObject dropShadowFar;
 
-    float timer;
+    public float timer;
     public float timerMax = 1.0f;
 
     public Card card;
@@ -36,10 +36,12 @@ public class CardObject : MonoBehaviour
 
     public SpriteRenderer[] lineSprite = new SpriteRenderer[3];
 
-    public void InitializeAnimation(Vector3 start, Vector3 target) {
+    public void InitializeAnimation(float timerSet, Vector3 start, Vector3 target) {
         startPos = start;
         targetPos = target;
-        timer = 0;
+        timer = timerSet;
+        rotationTimer = 0;
+
         transform.position = start;
     }
 
@@ -49,11 +51,23 @@ public class CardObject : MonoBehaviour
     };
 
     float startZ;
+    public float baseScale;
+    float actualBaseScale;
 
+    public MeshRenderer backRenderer;
+    public MeshRenderer shadowRenderer;
     void Awake() {
         startZ = transform.position.z;
         shadowBasePos = dropShadowFar.transform.localPosition;
+        actualBaseScale = transform.localScale.x;
+
+        backRenderer.material = new Material(backRenderer.material);
+        shadowRenderer.material = new Material(shadowRenderer.material);
+
+        backMaterial = backRenderer.material;
+        dropShaderMaterial = shadowRenderer.material;
     }
+
     public void InitializeLine(
             TMPro.TextMeshProUGUI text, 
             SpriteRenderer sprite,
@@ -89,7 +103,18 @@ public class CardObject : MonoBehaviour
         toAppend += "\n";
         return toAppend;
     }
+    
+    public bool flipped = false;
+
     public void InitializeCard(Card cardSet) {
+        returnWhenAnimationDone = false;
+        runFadeOut = false;
+        runRotate = false;
+        isPreview = false;
+        baseScale = actualBaseScale;
+
+        backMaterial.color = new Color(1, 1, 1, 1);
+        dropShaderMaterial.color = new Color(1, 1, 1, 1);
 
         timer = 0;
         hoverReady = false;
@@ -104,19 +129,20 @@ public class CardObject : MonoBehaviour
             lifespanText.text = card.lifespan.ToString();
         }
         
-        int currentLine = 0;
+        int currentLine = 1;
         
-        if (card.choiceCards.Count > 0) {
-            string toAppend = CreateString(card.choiceCards.Count, "Choice");
-            InitializeLine(lineText[currentLine], lineSprite[currentLine], LineType.Choice, toAppend, card.choiceCards.Count);
-            currentLine++;
-        }
-
-        for (int i = currentLine; i < 3; ++i) {
+        for (int i = 0; i < 3; ++i) {
             lineText[i].enabled = false;
             lineSprite[i].enabled = false;
         }
-        
+
+        if (card.choiceCards.Count > 0) {
+            string toAppend = CreateString(card.choiceCards.Count, "Choice");
+            InitializeLine(lineText[currentLine], lineSprite[currentLine], LineType.Choice, toAppend, card.choiceCards.Count);
+            lineText[currentLine].enabled = true;
+            lineSprite[currentLine].enabled = true;
+            currentLine++;
+        }
     }
     
 
@@ -127,14 +153,17 @@ public class CardObject : MonoBehaviour
     
     public bool hoverReady = false;
 
+    public bool isPreview = false;
     public bool StartHover() {
 
+        bool startedHover = false;
         if (!hovering && hoverReady) {
             hovering = true;
+            startedHover = true;
            // hoverTargetPos = new Vector3(originalPos.x, originalPos.y, hoverOffset);
         }
 
-        return hoverReady;
+        return startedHover;
     }
 
     public void StopHover() {
@@ -146,6 +175,8 @@ public class CardObject : MonoBehaviour
            // transform.position = originalPos;
         }
     }
+
+    public bool returnWhenAnimationDone = false;
 
     public Vector3 DropShadowMaxOffset = new Vector3(.25f, -.25f, 0);
     public Vector3 shadowBasePos;
@@ -160,7 +191,7 @@ public class CardObject : MonoBehaviour
     }
 
     public AnimationCurve hoverAnimationCurve;
-    float hoverTimer = 0;
+    public float hoverTimer = 0;
     public float hoverTimerMax = .3f;
 
     public Transform dropShadowContainer;
@@ -168,17 +199,77 @@ public class CardObject : MonoBehaviour
 
     public void UpdateHover() {
         float amount = hoverAnimationCurve.Evaluate(hoverTimer / hoverTimerMax);
-        transform.localScale = Vector3.one * (1.0f + (maxScale * amount));
+        transform.localScale = Vector3.one * (baseScale + (maxScale * amount));
         transform.position = new Vector3(transform.position.x, transform.position.y, 
         startZ + hoverOffset * amount);
     }
 
-    public void Update() {
-        
-        if (!hovering) {
-            transform.position = Vector3.Lerp(startPos, targetPos, animationCurve.Evaluate(timer / timerMax));
-            timer += Time.deltaTime;
+    public AnimationCurve rotationCurve;
+    public float targetRotationDegrees = 0;
 
+    public float startRotation = 0;
+
+    public float rotationTimer = 0;
+    public float rotationTimerMax = .4f;
+
+    public bool runRotate = false;
+    public void StartRotation(float timerStart, float start, float end) {
+        runRotate = true;
+        startRotation = start;
+        rotationTimer = timerStart;
+        transform.rotation = Quaternion.Euler(0, start, 0);
+    }
+
+    public float fadeTimer;
+    public float fadeTimerMax;
+    
+    public Material backMaterial;
+    public Material dropShaderMaterial;
+
+    bool runFadeOut = false;
+    public void StartFadeOut(float timerSet) {
+        fadeTimer = timerSet;
+        runFadeOut = true;
+    }
+
+    public void UpdateFadeOut() {
+
+        if (fadeTimer > 0 && runFadeOut) {
+            float alpha = 1.0f - Mathf.Clamp(fadeTimer / fadeTimerMax, 0, 1.0f);
+            backMaterial.color = new Color(1, 1, 1, alpha);
+            dropShaderMaterial.color = new Color(1, 1, 1, alpha);
+        }
+
+        fadeTimer += Time.deltaTime;
+    }
+
+    public Deck deck;
+
+    // used to flip cards over
+    void UpdateRotation() {
+        if (!runRotate) return;
+        if (rotationTimer > 0) {
+
+            float angle = 
+            (targetRotationDegrees - startRotation)
+             * rotationCurve.Evaluate(rotationTimer / rotationTimerMax)
+              + startRotation;
+
+            transform.rotation = Quaternion.Euler(0,angle, 0);
+        }
+
+        rotationTimer += Time.deltaTime;
+    }
+    
+    void Update() {
+        if (!hovering) {
+
+            if (timer > 0) {
+                transform.position = Vector3.Lerp(startPos, targetPos, animationCurve.Evaluate(timer / timerMax));
+            }
+
+            timer += Time.deltaTime;
+            
             if (hoverTimer > 0) {
                 hoverTimer -= Time.deltaTime;
             }
@@ -188,14 +279,22 @@ public class CardObject : MonoBehaviour
             }
         }
 
-        if (timer > timerMax && !hoverReady) {
+        if (timer > timerMax && !hoverReady && rotationTimer > rotationTimerMax) {
             originalPos = transform.position;
             hoverReady = true;
+            Debug.Log("HOVER READY");
         }
 
+        if (returnWhenAnimationDone && timer > timerMax && fadeTimer > fadeTimerMax) {
+            deck.ReturnCardToPool(this);
+        }
+
+       // transform.position += Vector3.right * .001f;
         
         UpdateHover();
         updateShadow();
+        UpdateRotation();
+        UpdateFadeOut();
     }
 
 }

@@ -12,6 +12,9 @@ public class Deck : MonoBehaviour
     List<CardObject> cardsInHand = new List<CardObject>();
 
     List<CardObject> cardPool = new List<CardObject>();
+
+    List<CardObject> previewCards = new List<CardObject>();
+
     int cardPoolSize = 10;
     
     Cards allCards;
@@ -24,13 +27,15 @@ public class Deck : MonoBehaviour
         allCards = new Cards();
         //AddCardToDeck(allCards.cards["Eat"]);
         AddCardToDeck(allCards.cards["Cry"]);
-        //AddCardToDeck(allCards.cards["Eat"]);
-        //AddCardToDeck(allCards.cards["Cry"]);
-        //AddCardToDeck(allCards.cards["Eat"]);
+        AddCardToDeck(allCards.cards["Eat"]);
+        AddCardToDeck(allCards.cards["Cry"]);
+        AddCardToDeck(allCards.cards["Eat"]);
 
         for (int i = 0; i < cardPoolSize; ++i) {
             CardObject cardObject = GameObject.Instantiate(cardPrefab, Vector3.zero, Quaternion.identity);
-            cardObject.gameObject.SetActive(false);
+            cardObject.transform.position = new Vector3(1000, 1000, 0);
+
+           // cardObject.gameObject.SetActive(false);
             cardPool.Add(cardObject);
         }
 
@@ -42,11 +47,14 @@ public class Deck : MonoBehaviour
         deckCountText.text = cardsInDeck.Count.ToString();
     }
 
-    void ReturnCardToPool(CardObject co) {
+    public void ReturnCardToPool(CardObject co) {
         co.hoverReady = false;
         co.StopHover();
-        co.gameObject.SetActive(false);
+        co.enabled = false;
+        co.transform.position = new Vector3(1000, 1000, 0);
+       // co.gameObject.SetActive(false);
         cardPool.Add(co);
+     //   Debug.Log("returned card to pool");
     }
 
     CardObject GetCardFromPool() {
@@ -59,6 +67,9 @@ public class Deck : MonoBehaviour
             cardObject = GameObject.Instantiate(cardPrefab, Vector3.zero, Quaternion.identity);
         }
 
+        cardObject.deck = this;
+        cardObject.enabled = true;
+        //cardObject.gameObject.SetActive(true);
         return cardObject;
     }
     
@@ -72,17 +83,70 @@ public class Deck : MonoBehaviour
 
     public float handPadding;
 
+    public Transform previewCardPos;
+
+    public float choicePadding = .1f;
+
+
+    void GeneratePreviewCards(CardObject co) {
+       // Debug.Log("Generating Preview Cards");
+        HidePreviewCards();
+
+        float currentX = 0;
+
+        BoxCollider collider = cardPrefab.GetComponent<BoxCollider>();
+        float cardWidth = collider.size.x * .8f;
+
+        foreach(Card card in co.card.choiceCards) {
+            CardObject newCard = GetCardFromPool();
+            
+            newCard.gameObject.transform.rotation = Quaternion.Euler(0, 180, 0);
+            newCard.InitializeCard(card);
+            newCard.isPreview = true;
+            newCard.baseScale = .8f;
+            newCard.gameObject.transform.position = previewCardPos.position + Vector3.right * currentX;
+            newCard.timer = newCard.timerMax;
+            newCard.hoverTimer = newCard.hoverTimerMax;
+
+            newCard.targetPos = newCard.gameObject.transform.position;
+
+            currentX += cardWidth + choicePadding;
+
+            previewCards.Add(newCard);
+        }
+    }
+
+    void HidePreviewCards() {
+
+        foreach(CardObject c in previewCards) {
+            c.StartFadeOut(0);
+            c.returnWhenAnimationDone = true;
+            //ReturnCardToPool(c);
+        }
+
+        previewCards.Clear();
+    }
+    
+    public float animationOffset = .1f;
+
     void DealHand() {
 
         BoxCollider collider = cardPrefab.GetComponent<BoxCollider>();
         float cardWidth = collider.size.x;
         float halfCardWidth = cardWidth / 2.0f;
-        float leftPos = handCenter.position.x - (halfCardWidth * startHandSize);
+        
+        float leftPos = handCenter.position.x;
 
         float handOffset = 0;
         
+        int cardsToBeDealt = Mathf.Min(startHandSize, cardsInDeck.Count);
+
         for (int i = 0; i < startHandSize; ++i) {
-            DealCard(new Vector3(leftPos + cardWidth * i + halfCardWidth + handOffset, handCenter.position.y, handCenter.position.z));
+            DealCard(
+                new Vector3(leftPos + cardWidth * i + handOffset, handCenter.position.y, handCenter.position.z),
+                i, 
+                cardsToBeDealt
+            );
             handOffset += handPadding;
         }
     }
@@ -107,14 +171,20 @@ public class Deck : MonoBehaviour
     int cardsPlayedCount = 0;
     int cardsToPlayPerTurn = 2;
 
-    void DealCard(Vector3 pos) {
+    void DealCard(Vector3 pos, int index, int totalCount) {
+
+        float animationTotal = totalCount * animationOffset;
+        
         if (cardsInDeck.Count > 0) {
             Card card = GetCardFromDeck();
 
             CardObject newCard = GetCardFromPool();
             newCard.InitializeCard(card);
-            newCard.InitializeAnimation(cardStartTransform.position, pos);
-            newCard.gameObject.SetActive(true);
+
+            newCard.InitializeAnimation(-index * animationOffset, cardStartTransform.position, pos);
+            //newCard.gameObject.SetActive(true);
+
+            newCard.StartRotation(-animationTotal + -index * animationOffset, 180, 0);
 
             cardsInHand.Add(newCard);
         }
@@ -130,6 +200,15 @@ public class Deck : MonoBehaviour
                     allCards.OneTime(cardObject.card);
                 }
             }
+        }
+
+        float timerOffset = 0;
+        float moveOffset = previewCards.Count * animationOffset + .5f;
+
+        foreach(CardObject c in previewCards) {
+            c.StartRotation(timerOffset, 180, 0);
+            c.InitializeAnimation(-moveOffset + timerOffset, c.gameObject.transform.position, cardStartTransform.position);
+            timerOffset -= animationOffset;
         }
         
         cardsInHand.Remove(cardObject);
@@ -162,6 +241,7 @@ public class Deck : MonoBehaviour
             }
         }
 
+        previewCards.Clear();
         cardsInHand.Clear();
 
         DealHand();
@@ -179,8 +259,13 @@ public class Deck : MonoBehaviour
         if ( Physics.Raycast(mouseRay, out info, 10.0f)) {
             CardObject cardObject = info.collider.GetComponent<CardObject>();
 
+            if (cardObject != null && cardObject.isPreview) {
+                cardObject = null;
+            }
+            
             if (hoveringOver != null && cardObject != hoveringOver) {
                 hoveringOver.StopHover();
+                HidePreviewCards();
             }
 
             if(cardObject == null) {hoveringOver = null;}
@@ -189,16 +274,18 @@ public class Deck : MonoBehaviour
 
                 if (cardObject.StartHover()) {
                     hoveringOver = cardObject;
+                    GeneratePreviewCards(cardObject);
                 }
 
                 if (Input.GetMouseButtonDown(0)) {
                     ActivateCard(cardObject);
-                    Debug.Log(cardObject.card.name);
+                   // Debug.Log(cardObject.card.name);
                 }
             }
         } else {
             if (hoveringOver != null) {
                 hoveringOver.StopHover();
+                HidePreviewCards();
             }
 
             hoveringOver = null;
