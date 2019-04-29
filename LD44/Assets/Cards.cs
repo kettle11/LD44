@@ -97,19 +97,19 @@ public class Cards
     public void CreateCards() {
         Card birth = MakeCard("Begin your life", 0);
         
+        /*
         Card testTragedy = MakeTragicEvent("Smelly Socks");
         testTragedy.handSizeAdjustment = 3;
         testTragedy.handSizeAdjustmentTurns = 3;
+        */
 
-        Card eatCard = MakeCard("Eat", 2);
+        Card eatCard = MakeCard("Eat", 0);
         Card burpCard = MakeCard("Burp", 0);
 
         Card cry = MakeCard("Cry", 0);
 
         birth.AddChoiceCard(cry);
         birth.AddChoiceCard(burpCard);
-
-        cry.AddEvent(birth);
 
        // cry.AddTragicEvent(testTragedy);
 
@@ -131,8 +131,8 @@ public class Cards
 
         cry.AddChoiceCard(sleepCard);
         cry.AddChoiceCard(eatCard);
-        cry.AddChoiceCard(cry);
-        
+        cry.AddChoiceCard(burpCard);
+
         eatCard.AddChoiceCard(poopCard);
         eatCard.AddChoiceCard(burpCard);
 
@@ -140,6 +140,12 @@ public class Cards
         poopCard.AddChoiceCard(sleepCard);
         
         sleepCard.AddChoiceCard(play0);
+        sleepCard.AddChoiceCard(eatCard);
+
+        Card rainbowPoo = MakeTragicEvent("Rainbow Poo");
+        dumb0.AddTragicEvent(rainbowPoo);
+        rainbowPoo.cardDiscard = 1;
+        rainbowPoo.cardDraw = 1;
 
         Card school = new Card("Attend first day of school", 1);
         school.onetime = true;

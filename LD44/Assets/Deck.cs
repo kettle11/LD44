@@ -322,6 +322,11 @@ public class Deck : MonoBehaviour
 
             //newCard.gameObject.SetActive(true);
 
+            if (card.lifespan > 0 && firstNumberedCard) {
+                firstNumberedCard = false;
+                tipText.text = "Unused cards with numbers in the corner will shuffle back into your life";
+            }
+            
             if (card.type == CardType.Choice) {
                 newCard.StartRotation(-animationTotal + -animationIndex * animationOffset, 180, 0);
             } else if (card.type == CardType.Event) {
@@ -329,6 +334,11 @@ public class Deck : MonoBehaviour
                 //newCard.transform.rotation = Quaternion.Euler(0, 180, 0);
                 //newCard.StartHover();
             } else if (card.type == CardType.TragicEvent) {
+                if (firstEvent) {
+                    tipText.text = "Event cards must be played";
+                    firstEvent = false;
+                }
+
                 newCard.StartRotation(-animationTotal * 1.6f + -animationIndex * animationOffset, 180, 0);
                 //newCard.transform.rotation = Quaternion.Euler(0, 180, 0);
                 //newCard.StartHover();
@@ -439,11 +449,17 @@ public class Deck : MonoBehaviour
 
         if (turnStrings.Count > year) {
             tipText.SetText(turnStrings[year]);
+        } else {
+            tipText.SetText("");
         }
        // year++;
         yearText.text = "Year " + (year+1).ToString();
     }
     
+
+    bool firstEvent = true;
+
+    bool firstNumberedCard = true;
 
     void ShuffleBackCards() {
         List<CardObject> toRemove = new List<CardObject>();
@@ -482,7 +498,7 @@ public class Deck : MonoBehaviour
 
     void NextTurn() {
        // titleCard.isKinematic = false;
-        title.enabled = false;
+        title.gameObject.SetActive(false);
         backgroundColor = gameBackgroundColor;
 
         year++;
