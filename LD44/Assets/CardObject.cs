@@ -90,6 +90,11 @@ public class CardObject : MonoBehaviour
     }
 
     public Color GetPrimaryColor() {
+
+        if (card == null) {
+            return choiceColor;
+        }
+        
         if (card.type == CardType.Choice) {
             return choiceColor;
         } else if (card.type == CardType.TragicEvent) {

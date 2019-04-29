@@ -667,8 +667,8 @@ MonoBehaviour:
   turnStrings:
   - 
   - Choose two <color=#FDED63>choices</color> per year
-  - Cards with numbers in the corner will shuffle back into your life
-  - Cards with numbers in the corner will shuffle back into your life
+  - Unused cards go away
+  - You cannot play more than 2 choice cards per turn
   cardPrefab: {fileID: -7308526297068652890, guid: 10aa526042b484e63ad4647ab791ad64,
     type: 3}
   animationsWaitingOn: 0

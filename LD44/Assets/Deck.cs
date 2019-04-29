@@ -34,6 +34,7 @@ public class Deck : MonoBehaviour
     
     void Start()
     {   
+        Card.randomEnabled = false;
         for (int i = 0; i < maxHandSize; ++i) {
             openHandIndices.Add(true);
         }
@@ -112,11 +113,13 @@ public class Deck : MonoBehaviour
     
     int startHandSize = 4;
     int maxHandSize = 5;
-
+    
+    int randomCards = 5;
     void StartGame() {
         UpdateDeckSize();
         DealHand();
         UpdateYear();
+
     }
 
     public int handSizeAdjustment = 3;
@@ -222,6 +225,7 @@ public class Deck : MonoBehaviour
 
         GenerateTopDeck();
 
+        cardsPlayedCount = 0;
         
        // AddCardToDeck(allCards.cards["Smelly Socks"]);
       //  visibleDeckSize++;
@@ -326,7 +330,7 @@ public class Deck : MonoBehaviour
                 firstNumberedCard = false;
                 tipText.text = "Unused cards with numbers in the corner will shuffle back into your life";
             }
-            
+
             if (card.type == CardType.Choice) {
                 newCard.StartRotation(-animationTotal + -animationIndex * animationOffset, 180, 0);
             } else if (card.type == CardType.Event) {
@@ -420,6 +424,10 @@ public class Deck : MonoBehaviour
 
         ReturnCardToPool(cardObject);
             
+        if(cardObject.card.type == CardType.Choice) {
+            cardsPlayedCount++;
+        }
+
         if(cardObject.card.cardDiscard > 0) {
             DiscardRandomCards(cardObject.card.cardDiscard);
         }
@@ -432,10 +440,6 @@ public class Deck : MonoBehaviour
 
         UpdateDeckSize();    
 
-
-        if(cardObject.card.type == CardType.Choice) {
-            cardsPlayedCount++;
-        }
         CheckEndState();
         FlashColor(cardObject.GetPrimaryColor(), .3f);
     }   
@@ -454,13 +458,52 @@ public class Deck : MonoBehaviour
         }
        // year++;
         yearText.text = "Year " + (year+1).ToString();
+
+        
+        if (year == 13) {
+            Card.randomEnabled = true;
+            AddCardToDeck(allCards.cards["Learn to program"]);
+            AddCardToDeck(allCards.cards["Pet a dog"]);
+
+            for (int i = 0; i < randomCards; ++i) {
+                AddCardToDeck(Cards.list[Random.Range(0, Cards.list.Count)]);
+            }
+        } else if (year == 15) {
+            AddCardToDeck(allCards.cards["Share your first kiss with Alfonso"]);
+            AddCardToDeck(allCards.cards["Smooch Amelia"]);
+            AddCardToDeck(allCards.cards["Make out with Muds"]);
+        } else if (year == 17) {
+            AddCardToDeck(allCards.cards["Get sick"]);
+            AddCardToDeck(allCards.cards["Buy a home"]);
+            for (int i = 0; i < randomCards; ++i) {
+                AddCardToDeck(Cards.list[Random.Range(0, Cards.list.Count)]);
+            }
+        } else if (year == 30) {
+            AddCardToDeck(allCards.cards["Suffer an injury"]);
+
+            for (int i = 0; i < randomCards; ++i) {
+                AddCardToDeck(Cards.list[Random.Range(0, Cards.list.Count)]);
+            }
+        } else if (year == 40) {
+            AddCardToDeck(allCards.cards["Get sick"]);
+
+            for (int i = 0; i < randomCards; ++i) {
+                AddCardToDeck(Cards.list[Random.Range(0, Cards.list.Count)]);
+            }
+        } else if (year == 50) {
+            AddCardToDeck(allCards.cards["Get sick"]);
+            AddCardToDeck(allCards.cards["Suffer an injury"]);
+
+            for (int i = 0; i < randomCards; ++i) {
+                AddCardToDeck(Cards.list[Random.Range(0, Cards.list.Count)]);
+            }
+        }
     }
     
 
     bool firstEvent = true;
 
     bool firstNumberedCard = true;
-
     void ShuffleBackCards() {
         List<CardObject> toRemove = new List<CardObject>();
 
@@ -556,6 +599,8 @@ public class Deck : MonoBehaviour
         if ((cardsPlayedCount >= cardsToPlayPerTurn || cardsInHand.Count == 0)) {
             if (eventCardCount == 0) {
                 NextTurn();
+            } else {
+                //ShuffleBackCards();
             }
         }
     }
@@ -602,7 +647,17 @@ public class Deck : MonoBehaviour
         }
     }
 
+    bool gameOver = false;
+
     void Update() {
+
+        if (cardsInDeck.Count == 0 && cardsInHand.Count == 0) {
+            tipText.text = "Your life has run out of moments. Click to try again";
+            if (Input.GetMouseButtonDown(0)) {
+                Application.LoadLevel(Application.loadedLevel);
+            }
+        }
+
         MainCameraFlashFade();
         if (delayedDealHand && animationsWaitingOn <= 1) {
             delayedDealHand = false;
@@ -640,8 +695,8 @@ public class Deck : MonoBehaviour
 
             if(cardObject == null) {hoveringOver = null;}
 
-            if (cardObject != null) {
-
+            if (cardObject != null && (cardsPlayedCount < 2 || cardObject.card.type != CardType.Choice)) {
+                
                 if (cardObject.StartHover()) {
                     hoveringOver = cardObject;
                     GeneratePreviewCards(cardObject);
