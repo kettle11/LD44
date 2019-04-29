@@ -59,25 +59,6 @@ public class Card
         type = card.type;
         cardDraw = card.cardDraw;
         cardDiscard = card.cardDiscard;
-
-        if (randomEnabled && choiceCards.Count == 0) {
-            for (int i = 0; i < 3; ++i) {
-                if (Random.value > .5f) {
-                    Card randomCard = Cards.list[Random.Range(0, Cards.list.Count)];
-                    if(randomCard.type == CardType.Choice) {
-                        choiceCards.Add(randomCard);
-                    }
-
-                    if(randomCard.type == CardType.TragicEvent) {
-                        tragicEvents.Add(randomCard);
-                    }
-
-                    if(randomCard.type == CardType.Event) {
-                        events.Add(randomCard);
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -86,13 +67,12 @@ public class Cards
     public Dictionary<string, Card> cards = new Dictionary<string, Card>();
     public Dictionary<Card, bool> hasBeenPlayed = new Dictionary<Card, bool>();
 
-    public static List<Card> list = new List<Card>();
+    public static List<Card> randomCards = new List<Card>();
     
     public Card MakeCard(string name, int lifespan) {
         Card newCard = new Card(name, lifespan);
         newCard.type = CardType.Choice;
         cards.Add(name, newCard);
-        list.Add(newCard);
         return newCard;
     }
 
@@ -118,8 +98,6 @@ public class Cards
     }
 
     public void CreateCards() {
-        list.Clear();
-
         Card birth = MakeCard("Begin your life", 0);
         
         /*
@@ -141,7 +119,6 @@ public class Cards
         Card poopCard =  MakeCard("Poo", 0);
         Card sleepCard =  MakeCard("Sleep", 0);
 
-        Card play0 = new Card("Play with toys", 0);
         Card play1 = new Card("Play with crayons", 0);
         Card dumb0 = new Card("Eat crayons", 1);
 
@@ -151,37 +128,32 @@ public class Cards
         
         Card draw = new Card("Draw a picture", 0);
 
-        play0.AddChoiceCard(draw);
-        play0.AddChoiceCard(dumb0);
-
+        play1.AddChoiceCard(dumb0);
         play1.AddChoiceCard(dumb0);
         play1.AddChoiceCard(draw);
-        play0.AddChoiceCard(play1);
 
         cry.AddChoiceCard(sleepCard);
         cry.AddChoiceCard(eatCard);
         cry.AddChoiceCard(burpCard);
 
         eatCard.AddChoiceCard(poopCard);
-        eatCard.AddChoiceCard(burpCard);
 
-        poopCard.AddChoiceCard(eatCard);
         poopCard.AddChoiceCard(sleepCard);
         
-        sleepCard.AddChoiceCard(play0);
         sleepCard.AddChoiceCard(eatCard);
-
+        sleepCard.AddChoiceCard(play1);
+        
         Card rainbowPoo = MakeTragicEvent("Rainbow Poo");
         dumb0.AddTragicEvent(rainbowPoo);
         rainbowPoo.cardDiscard = 1;
         rainbowPoo.cardDraw = 1;
 
-        Card school = MakeCard("Attend first day of school", 1);
+        Card school = MakeCard("Attend school", 1);
         school.onetime = true;
 
         draw.AddChoiceCard(school);
 
-        Card makeAFriend = MakeCard("Make your first friend", 1);
+        Card makeAFriend = MakeCard("Make a friend", 1);
         makeAFriend.onetime = true;
 
         Card graduate1 = MakeCard("Learn to read", 2);
@@ -198,8 +170,9 @@ public class Cards
         Card study0 = MakeCard("Study", 1);
         Card study1 = MakeCard("Study more", 2);
         
-        Card insult0 = MakeCard("Call your friend a terrible insult", 2);
+        Card insult0 = MakeCard("Call your friend a poo", 2);
         Card sadFriend = MakeTragicEvent("Your friend is sad");
+        insult0.AddTragicEvent(sadFriend);
 
         Card treefort = MakeCard("Make a sick treefort with your friend", 0);
 
@@ -223,6 +196,7 @@ public class Cards
         stolenMoney.cardDraw = 1;
 
         getYourLunchMoneyStolen.AddChoiceCard(eatASinglePieceOfBread);
+        getYourLunchMoneyStolen.cardDiscard = 1;
         stealLunchMoney.AddTragicEvent(getYourLunchMoneyStolen);
         stealLunchMoney.cardDiscard = 1;
         stealLunchMoney.AddEvent(stolenMoney);
@@ -241,10 +215,14 @@ public class Cards
         graduateElementarySchool.AddTragicEvent(injury);
 
         Card playMoreSports = MakeCard("Play more sports", 2);
-        Card winASportsTournament = MakeEvent("Win a tournament");
+        Card winASportsTournament = MakeEvent("Win a competition");
         winASportsTournament.cardDraw = 3;
         winASportsTournament.cardDiscard = 1;
 
+        pickupBallet.AddEvent(winASportsTournament);
+        pickupSport.AddChoiceCard(playMoreSports);
+
+        playMoreSports.AddChoiceCard(winASportsTournament);
         playMoreSports.AddTragicEvent(injury);
 
         graduateElementarySchool.AddChoiceCard(playMoreSports);
@@ -260,6 +238,7 @@ public class Cards
         getArrested.handSizeAdjustmentTurns = 4;
 
         hackTheGovernment.AddEvent(stolenMoney);
+        hackTheGovernment.AddTragicEvent(getArrested);
 
         Card petADog = MakeCard("Pet a dog", 3);
         Card getADog = MakeCard("Adopt the dog", 3);
@@ -274,11 +253,11 @@ public class Cards
 
         Card robABank = MakeCard("Rob a bank", 3);
         robABank.AddEvent(stolenMoney);
-        robABank.AddEvent(getArrested);
+        robABank.AddTragicEvent(getArrested);
 
         Card college0 = MakeCard("Get a degree in marine biology", 3);
         Card college1 = MakeCard("Get a degree interpretive dance", 3);
-        Card college2 = MakeCard("Get a degree in numbers", 3);
+        Card college2 = MakeCard("Get a degree in really hard math", 3);
 
         college2.AddChoiceCard(robABank);
         college2.AddChoiceCard(learnToCode);
@@ -304,13 +283,14 @@ public class Cards
         Card data1 = MakeCard("Go out with Amelia", 3);
         Card data2 = MakeCard("Run away with Muds", 3);
 
-        Card spendMoney = MakeCard("You are rich: spend money", 2);
-        spendMoney.cardDraw += 4;
+        Card spendMoney = MakeCard("Spend the big bucks", 2);
+        spendMoney.cardDraw += 2;
         spendMoney.cardDiscard += 2;
 
         Card lottery = MakeEvent("You win the lottery!");
         lottery.AddChoiceCard(spendMoney);
         lottery.AddChoiceCard(spendMoney);
+        
         lottery.AddChoiceCard(date0);
         lottery.AddChoiceCard(buyABoat);
         
@@ -340,12 +320,15 @@ public class Cards
         data1.AddChoiceCard(MakeCard("Marry Amelia", 3));
         data2.AddChoiceCard(MakeCard("Spend time with Muds", 3));
         
-        Card vampure = MakeTragicEvent("Alfonso is a vampure");
-        vampure.cardDiscard = 3;
+        Card vampire = MakeTragicEvent("Alfonso is a vampire");
+        vampire.cardDiscard = 3;
         
-        date0.AddTragicEvent(vampure);
-        vampure.cardDiscard = 3;
+        date0.AddTragicEvent(vampire);
 
+       // randomCards.Add(bankruptcy);
+        randomCards.Add(lottery);
+        randomCards.Add(petADog);
+        randomCards.Add(learnToCode);
         
     }
 

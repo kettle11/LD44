@@ -94,7 +94,7 @@ public class CardObject : MonoBehaviour
         if (card == null) {
             return choiceColor;
         }
-        
+
         if (card.type == CardType.Choice) {
             return choiceColor;
         } else if (card.type == CardType.TragicEvent) {
@@ -185,7 +185,7 @@ public class CardObject : MonoBehaviour
     
         int currentLine = 0;
 
-        if(card.type == CardType.Choice && card.tragicEvents.Count == 0 && card.events.Count == 0) currentLine = 1;
+       // if(card.type == CardType.Choice && card.tragicEvents.Count == 0 && card.events.Count == 0) currentLine = 1;
         
         for (int i = 0; i < 3; ++i) {
             lineText[i].enabled = false;

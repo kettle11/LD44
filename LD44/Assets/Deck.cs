@@ -132,8 +132,8 @@ public class Deck : MonoBehaviour
     public float choicePadding = .1f;
 
 
-    void CreatePreviewCard(CardObject newCard, ref float currentX, float cardWidth) {
-        newCard.gameObject.transform.rotation = Quaternion.Euler(0, 180, 0);
+    void CreatePreviewCard(CardObject newCard, ref float currentX, float cardWidth, float angle) {
+        newCard.gameObject.transform.rotation = Quaternion.Euler(0, angle, 0);
 
         newCard.isPreview = true;
         newCard.baseScale = .8f;
@@ -158,7 +158,7 @@ public class Deck : MonoBehaviour
         foreach(Card card in co.card.choiceCards) {
             CardObject newCard = GetCardFromPool();
             newCard.InitializeCard(card);
-            CreatePreviewCard(newCard, ref currentX, cardWidth);
+            CreatePreviewCard(newCard, ref currentX, cardWidth, 0);
         }
 
         currentX += choicePadding;
@@ -166,7 +166,7 @@ public class Deck : MonoBehaviour
         foreach(Card card in co.card.tragicEvents) {
             CardObject newCard = GetCardFromPool();
             newCard.InitializeCard(card);
-            CreatePreviewCard(newCard, ref currentX, cardWidth);
+            CreatePreviewCard(newCard, ref currentX, cardWidth, 180);
         }
 
         currentX += choicePadding;
@@ -175,7 +175,7 @@ public class Deck : MonoBehaviour
         foreach(Card card in co.card.events) {
             CardObject newCard = GetCardFromPool();
             newCard.InitializeCard(card);
-            CreatePreviewCard(newCard, ref currentX, cardWidth);
+            CreatePreviewCard(newCard, ref currentX, cardWidth, 180);
         }
     }
 
@@ -449,6 +449,12 @@ public class Deck : MonoBehaviour
     public TMPro.TextMeshProUGUI title;
     public Rigidbody titleCard;
 
+    void ShuffleInRandom(int count) {
+        for (int i = 0; i < count; ++i) {
+            AddCardToDeck(Cards.randomCards[Random.Range(0, Cards.randomCards.Count)]);
+        }
+    }
+
     void UpdateYear() {
 
         if (turnStrings.Count > year) {
@@ -460,43 +466,36 @@ public class Deck : MonoBehaviour
         yearText.text = "Year " + (year+1).ToString();
 
         
-        if (year == 13) {
+        if (year == 10) {
             Card.randomEnabled = true;
             AddCardToDeck(allCards.cards["Learn to program"]);
             AddCardToDeck(allCards.cards["Pet a dog"]);
 
-            for (int i = 0; i < randomCards; ++i) {
-                AddCardToDeck(Cards.list[Random.Range(0, Cards.list.Count)]);
-            }
+            ShuffleInRandom(randomCards);
         } else if (year == 15) {
             AddCardToDeck(allCards.cards["Share your first kiss with Alfonso"]);
             AddCardToDeck(allCards.cards["Smooch Amelia"]);
             AddCardToDeck(allCards.cards["Make out with Muds"]);
-        } else if (year == 17) {
+        } else if (year == 20) {
             AddCardToDeck(allCards.cards["Get sick"]);
             AddCardToDeck(allCards.cards["Buy a home"]);
-            for (int i = 0; i < randomCards; ++i) {
-                AddCardToDeck(Cards.list[Random.Range(0, Cards.list.Count)]);
-            }
+            ShuffleInRandom(randomCards);
+
         } else if (year == 30) {
             AddCardToDeck(allCards.cards["Suffer an injury"]);
 
-            for (int i = 0; i < randomCards; ++i) {
-                AddCardToDeck(Cards.list[Random.Range(0, Cards.list.Count)]);
-            }
+            ShuffleInRandom(randomCards);
         } else if (year == 40) {
             AddCardToDeck(allCards.cards["Get sick"]);
-
-            for (int i = 0; i < randomCards; ++i) {
-                AddCardToDeck(Cards.list[Random.Range(0, Cards.list.Count)]);
-            }
+            ShuffleInRandom(6);
         } else if (year == 50) {
             AddCardToDeck(allCards.cards["Get sick"]);
             AddCardToDeck(allCards.cards["Suffer an injury"]);
-
-            for (int i = 0; i < randomCards; ++i) {
-                AddCardToDeck(Cards.list[Random.Range(0, Cards.list.Count)]);
-            }
+            ShuffleInRandom(randomCards);
+        } else if (year == 60) {
+            AddCardToDeck(allCards.cards["Get sick"]);
+            AddCardToDeck(allCards.cards["Suffer an injury"]);
+            ShuffleInRandom(randomCards);
         }
     }
     
