@@ -155,10 +155,15 @@ public class Deck : MonoBehaviour
 
         float cardWidth = baseCardWidth * .8f;
 
+  
         foreach(Card card in co.card.choiceCards) {
             CardObject newCard = GetCardFromPool();
             newCard.InitializeCard(card);
-            CreatePreviewCard(newCard, ref currentX, cardWidth, 0);
+
+            float angle = 0;
+            if (card.mystery) angle = 180;
+
+            CreatePreviewCard(newCard, ref currentX, cardWidth, angle);
         }
 
         currentX += choicePadding;
@@ -166,16 +171,35 @@ public class Deck : MonoBehaviour
         foreach(Card card in co.card.tragicEvents) {
             CardObject newCard = GetCardFromPool();
             newCard.InitializeCard(card);
-            CreatePreviewCard(newCard, ref currentX, cardWidth, 180);
+
+            float angle = 0;
+            if (card.mystery) angle = 180;
+
+            CreatePreviewCard(newCard, ref currentX, cardWidth, angle);
         }
 
         currentX += choicePadding;
 
-
         foreach(Card card in co.card.events) {
             CardObject newCard = GetCardFromPool();
             newCard.InitializeCard(card);
-            CreatePreviewCard(newCard, ref currentX, cardWidth, 180);
+
+            float angle = 0;
+            if (card.mystery) angle = 180;
+
+            CreatePreviewCard(newCard, ref currentX, cardWidth, angle);
+        }
+        currentX += choicePadding;
+
+        
+        foreach(Card card in co.card.randomEvents) {
+            CardObject newCard = GetCardFromPool();
+            newCard.InitializeCard(card);
+
+            float angle = 0;
+            if (card.mystery) angle = 180;
+
+            CreatePreviewCard(newCard, ref currentX, cardWidth, angle);
         }
     }
 
@@ -199,10 +223,12 @@ public class Deck : MonoBehaviour
         return pos;
     }
 
-    void DealHand() {        
+    void DealHand() {     
+        handsDealt++;
+
         firstDealCounter--;
 
-        if ((cardsInDeck.Count <= 4 && animationsWaitingOn > 0) || firstDealCounter > 0) {
+        if ((cardsInDeck.Count <= startHandSize && animationsWaitingOn > 0) || firstDealCounter > 0) {
             delayedDealHand = true;
             return;
         }
@@ -236,29 +262,19 @@ public class Deck : MonoBehaviour
     CardObject topCard;
     int topCardIndex;
 
-    void AddCardToDeck(Card card) {
+    int AddCardToDeck(Card card) {
         Card copiedCard = new Card(card);
         cardsInDeck.Add(copiedCard);
-
+        
         GenerateTopDeck();
+        return cardsInDeck.Count - 1;
     }
 
     bool topCardReady = false;
 
-    void GenerateTopDeck() {
-
-        if (topCard != null) {
-            topCard.returnWhenAnimationDone = true;
-            topCard.StartFadeOut(0);
-            topCardReady = false;
-        }
-
-        if (cardsInDeck.Count == 0) return;
-
-        // Next card
+    void SetTopDeck(int index) {
         CardObject newCard = GetCardFromPool();
-        int randomIndex = Random.Range(0, cardsInDeck.Count);
-        Card c = cardsInDeck[randomIndex];
+        Card c = cardsInDeck[index];
         newCard.InitializeCard(c);
         
         newCard.gameObject.transform.rotation = Quaternion.Euler(0, 180, 0);
@@ -270,13 +286,39 @@ public class Deck : MonoBehaviour
         newCard.timer = newCard.timerMax;
         newCard.hoverTimer = newCard.hoverTimerMax;
         topCard = newCard;
-        topCardIndex = randomIndex;
+        topCardIndex = index;
         topCardReady = true;
     }
+
+    void GenerateTopDeck() {
+
+        if (topCard != null) {
+           // topCard.returnWhenAnimationDone = true;
+          //  topCard.StartFadeOut(0);
+            topCardReady = false;
+        }
+
+        if (cardsInDeck.Count == 0) return;
+
+        // Next card
+        int randomIndex = Random.Range(0, cardsInDeck.Count);
+        SetTopDeck(randomIndex);
+    }
+    
+    Card forceDrawCard = null;
 
     // Deck does not have to really be "shuffled", a random card can just be drawn.
     Card GetCardFromDeck() {
         int index = Random.Range(0, cardsInDeck.Count);
+        
+        if (forceDrawCard != null) {
+            Card card = forceDrawCard;
+            cardsInDeck.Remove(card);
+            UpdateDeckSize();
+            topCardReady = false;
+            forceDrawCard = null;
+            return card;
+        }
 
         if (topCard != null && topCardReady) {
             Card card = topCard.card;
@@ -285,7 +327,6 @@ public class Deck : MonoBehaviour
             UpdateDeckSize();
             return card;
         } else {
-            
             Card card = cardsInDeck[index];
             cardsInDeck.RemoveAt(index);
             UpdateDeckSize();
@@ -325,27 +366,21 @@ public class Deck : MonoBehaviour
             newCard.InitializeAnimation(-animationIndex * animationOffset, cardStartTransform.position, pos);
 
             //newCard.gameObject.SetActive(true);
-
+            
+            /*
             if (card.lifespan > 0 && firstNumberedCard) {
                 firstNumberedCard = false;
                 tipText.text = "Unused cards with numbers in the corner will shuffle back into your life";
             }
+            */
 
             if (card.type == CardType.Choice) {
                 newCard.StartRotation(-animationTotal + -animationIndex * animationOffset, 180, 0);
             } else if (card.type == CardType.Event) {
-                newCard.StartRotation(-animationTotal * 1.3f + -animationIndex * animationOffset, 180, 0);
-                //newCard.transform.rotation = Quaternion.Euler(0, 180, 0);
-                //newCard.StartHover();
+                newCard.StartRotation(-animationTotal * 1.3f + -animationIndex * animationOffset - .1f, 180, 0);
             } else if (card.type == CardType.TragicEvent) {
-                if (firstEvent) {
-                    tipText.text = "Event cards must be played";
-                    firstEvent = false;
-                }
 
-                newCard.StartRotation(-animationTotal * 1.6f + -animationIndex * animationOffset, 180, 0);
-                //newCard.transform.rotation = Quaternion.Euler(0, 180, 0);
-                //newCard.StartHover();
+                newCard.StartRotation(-animationTotal * 1.6f + -animationIndex * animationOffset - .4f, 180, 0);
             }
             
             cardsInHand.Add(newCard);
@@ -362,7 +397,17 @@ public class Deck : MonoBehaviour
         return -1;
     }
 
+    int yearCounter = 0;
+
+    int tipCounter = 0;
+    int yearIncrementRate = 3;
+
+    int starCount = 0;
+
+    public TMPro.TextMeshProUGUI starText;
+
     void ActivateCard(CardObject cardObject) {
+
         openHandIndices[cardObject.handIndex] = true;
 
         foreach(Card c in cardObject.card.choiceCards) {
@@ -395,6 +440,12 @@ public class Deck : MonoBehaviour
             }
         }
 
+        foreach(Card c in cardObject.card.randomEvents) {
+            Card random = c.GetRandomOutcome();
+            random.randomCardback = true;
+            AddCardToDeck(random);
+        }
+
         if (cardObject.card.handSizeAdjustmentTurns > 0) {
             handSizeAdjustment = cardObject.card.handSizeAdjustment;
             handSizeAdjustmentHowManyTurns = cardObject.card.handSizeAdjustmentTurns;
@@ -404,9 +455,11 @@ public class Deck : MonoBehaviour
         float moveOffset = previewCards.Count * animationOffset + .5f;
 
         foreach(CardObject c in previewCards) {
-            if (c.card.type == CardType.Choice) {
+
+            /*
+            if (c.card.type == CardType.Choice && !c.card.mystery) {
                 c.StartRotation(timerOffset, 180, 0);
-            }
+            }*/
 
             c.returnWhenAnimationDone = true;
             c.incrementDeckCountWhenDone = true;
@@ -421,8 +474,6 @@ public class Deck : MonoBehaviour
 
         cardsInHand.Remove(cardObject);
         openHandIndices[cardObject.handIndex] = true;
-
-        ReturnCardToPool(cardObject);
             
         if(cardObject.card.type == CardType.Choice) {
             cardsPlayedCount++;
@@ -438,10 +489,37 @@ public class Deck : MonoBehaviour
             }
         }
 
+        if(cardObject.card.timeMachine) {
+            year = 0;
+        }
+
+        if(cardObject.card.gainStar) {
+            starCount++;
+            starText.text = starCount.ToString();
+        }
+
+        if(cardObject.card.loseStar) {
+            starCount--;
+            starText.text = starCount.ToString();
+        }
+
+
+
         UpdateDeckSize();    
 
         CheckEndState();
         FlashColor(cardObject.GetPrimaryColor(), .3f);
+
+        yearCounter++;
+        tipCounter++;
+
+        if (yearCounter >= yearIncrementRate) {
+            year++;
+            UpdateYear();
+            yearCounter = 0;
+        }
+
+        ReturnCardToPool(cardObject);
     }   
 
     public TMPro.TextMeshProUGUI yearText;
@@ -455,48 +533,55 @@ public class Deck : MonoBehaviour
         }
     }
 
+    int lastYear = 0;
+
+    void ForceTopDeck(string cardName) {
+        int index = AddCardToDeck(allCards.cards[cardName]);
+        SetTopDeck(index);
+        forceDrawCard = cardsInDeck[index];
+    }
+    
+    int handsDealt = -1;
+
     void UpdateYear() {
 
-        if (turnStrings.Count > year) {
-            tipText.SetText(turnStrings[year]);
+        int tip = tipCounter;
+        Debug.Log("TIP " + tip);
+
+        if (turnStrings.Count > tip) {
+            tipText.SetText(turnStrings[tip]);
         } else {
             tipText.SetText("");
         }
        // year++;
         yearText.text = "Year " + (year+1).ToString();
 
-        
-        if (year == 10) {
-            Card.randomEnabled = true;
-            AddCardToDeck(allCards.cards["Learn to program"]);
-            AddCardToDeck(allCards.cards["Pet a dog"]);
-
-            ShuffleInRandom(randomCards);
-        } else if (year == 15) {
-            AddCardToDeck(allCards.cards["Share your first kiss with Alfonso"]);
-            AddCardToDeck(allCards.cards["Smooch Amelia"]);
-            AddCardToDeck(allCards.cards["Make out with Muds"]);
-        } else if (year == 20) {
-            AddCardToDeck(allCards.cards["Get sick"]);
-            AddCardToDeck(allCards.cards["Buy a home"]);
-            ShuffleInRandom(randomCards);
-
-        } else if (year == 30) {
-            AddCardToDeck(allCards.cards["Suffer an injury"]);
-
-            ShuffleInRandom(randomCards);
-        } else if (year == 40) {
-            AddCardToDeck(allCards.cards["Get sick"]);
-            ShuffleInRandom(6);
-        } else if (year == 50) {
-            AddCardToDeck(allCards.cards["Get sick"]);
-            AddCardToDeck(allCards.cards["Suffer an injury"]);
-            ShuffleInRandom(randomCards);
-        } else if (year == 60) {
-            AddCardToDeck(allCards.cards["Get sick"]);
-            AddCardToDeck(allCards.cards["Suffer an injury"]);
-            ShuffleInRandom(randomCards);
+        if (lastYear == 3 && year == 4) {
+            yearIncrementRate = 2;
+            ForceTopDeck("First day of school");
         }
+        
+        if (year == 12 && lastYear == 11) {
+            yearIncrementRate = 4;
+            ForceTopDeck("Puberty");
+        }
+                
+        if (year == 17 && lastYear == 16) {
+            ForceTopDeck("Adulthood");
+            yearIncrementRate = 2;
+        }
+
+        if (year == 39 && lastYear == 38) {
+            ForceTopDeck("Midlife");
+            yearIncrementRate = 1;
+        }
+
+        if (year > 30) {
+            ForceTopDeck("A strange machine makes you a baby again");
+        }
+
+        lastYear = year;
+        
     }
     
 
@@ -543,7 +628,6 @@ public class Deck : MonoBehaviour
         title.gameObject.SetActive(false);
         backgroundColor = gameBackgroundColor;
 
-        year++;
         UpdateYear();
 
         cardsPlayedCount = 0;
@@ -578,7 +662,6 @@ public class Deck : MonoBehaviour
         DiscardAnimation(c);
         cardsInHand.Remove(c);
         openHandIndices[c.handIndex] = true;
-        CheckEndState();
     }
 
     void DiscardRandomCards(int count) {
@@ -588,6 +671,10 @@ public class Deck : MonoBehaviour
         }
     }
 
+    bool victory = false;
+
+    int starsRequired = 6;
+
     void CheckEndState() {
         int eventCardCount = 0;
         foreach(CardObject card in cardsInHand) {
@@ -595,13 +682,28 @@ public class Deck : MonoBehaviour
                 eventCardCount++;
             }
         }
+
+        if (cardsInHand.Count == 0) {
+            NextTurn();
+        }
+
+        
+        if (starCount >= starsRequired) {
+            victory = true;
+            DiscardRandomCards(8);
+            title.text = "You win life!";
+            title.gameObject.SetActive(true);
+            tipText.text = "Click to play again";
+        }
+        
+        /*
         if ((cardsPlayedCount >= cardsToPlayPerTurn || cardsInHand.Count == 0)) {
             if (eventCardCount == 0) {
                 NextTurn();
             } else {
                 //ShuffleBackCards();
             }
-        }
+        }*/
     }
 
 
@@ -648,16 +750,36 @@ public class Deck : MonoBehaviour
 
     bool gameOver = false;
 
+    public Material background;
+    public Vector2 backgroundOffset;
+
+    public Color backgroundVictoryColor;
+
+    public TMPro.TextMeshProUGUI quoteText;
+
     void Update() {
+        MainCameraFlashFade();
+
+        if (victory) {
+            if (Input.GetMouseButtonDown(0)) {
+                Application.LoadLevel(Application.loadedLevel);
+            }
+            FlashColor(backgroundVictoryColor, .2f);
+            quoteText.enabled = false;
+            backgroundOffset += Time.deltaTime * new Vector2(.7f, -.9f).normalized;
+            background.mainTextureOffset = backgroundOffset;
+
+            return;
+        }
 
         if (cardsInDeck.Count == 0 && cardsInHand.Count == 0) {
-            tipText.text = "Your life has run out of moments. Click to try again";
+            tipText.text = "Your life has run out of cards. :( Click to try again";
             if (Input.GetMouseButtonDown(0)) {
                 Application.LoadLevel(Application.loadedLevel);
             }
         }
 
-        MainCameraFlashFade();
+
         if (delayedDealHand && animationsWaitingOn <= 1) {
             delayedDealHand = false;
             animationsWaitingOn = 0;
@@ -666,13 +788,13 @@ public class Deck : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Space)) {
             //DiscardHandIndex(2);
-            DrawCard();
+           // DrawCard();
         }
 
         
         if (Input.GetKeyDown(KeyCode.D)) {
           //  DiscardHandIndex(2);
-            DiscardRandomCards(2);
+           // DiscardRandomCards(2);
            // DrawCard();
         }
 
@@ -694,7 +816,7 @@ public class Deck : MonoBehaviour
 
             if(cardObject == null) {hoveringOver = null;}
 
-            if (cardObject != null && (cardsPlayedCount < 2 || cardObject.card.type != CardType.Choice)) {
+            if (cardObject != null ) {
                 
                 if (cardObject.StartHover()) {
                     hoveringOver = cardObject;
@@ -702,6 +824,17 @@ public class Deck : MonoBehaviour
                 }
 
                 if (cardObject.hoverReady) {
+                    if (cardObject.card.type == CardType.TragicEvent) {
+                        backgroundOffset += Time.deltaTime * new Vector2(0, 1);
+                    } else if (cardObject.card.type == CardType.Event) {
+                        backgroundOffset -= Time.deltaTime * new Vector2(0, 1);
+                    } else if (cardObject.card.type == CardType.Choice) {
+                        backgroundOffset -= Time.deltaTime * new Vector2(.5f, 0);
+                    } else {
+                        backgroundOffset = Vector2.zero;
+                    }
+
+                    background.mainTextureOffset = backgroundOffset;
                     FlashColor(Color.Lerp(cardObject.GetPrimaryColor(), backgroundColor, .7f), .1f);
                 }
 

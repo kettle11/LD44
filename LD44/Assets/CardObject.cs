@@ -41,6 +41,8 @@ public class CardObject : MonoBehaviour
     
     public Texture2D eventBackMaterial;
     public Texture2D eventFrontTexture;
+
+    public Texture2D mysteryEventBackMaterial;
     
     public MeshRenderer frontRenderer;
 
@@ -53,6 +55,9 @@ public class CardObject : MonoBehaviour
 
     public SpriteRenderer[] lineSprite = new SpriteRenderer[3];
 
+    public Color discardTextColor;
+    public Color drawTextColor;
+    
     public void InitializeAnimation(float timerSet, Vector3 start, Vector3 target) {
         startPos = start;
         targetPos = target;
@@ -67,7 +72,9 @@ public class CardObject : MonoBehaviour
     {
         Choice,
         TragicEvent,
-        Event
+        Event, 
+        Discard,
+        Draw
     };
 
     float startZ;
@@ -77,6 +84,10 @@ public class CardObject : MonoBehaviour
     public int handIndex;
     public MeshRenderer backRenderer;
     public MeshRenderer shadowRenderer;
+
+    TMPro.TextMeshProUGUI[] allText;
+    MeshRenderer[] allRenderers;
+
     void Awake() {
         startZ = transform.position.z;
         shadowBasePos = dropShadowFar.transform.localPosition;
@@ -87,6 +98,23 @@ public class CardObject : MonoBehaviour
 
         backMaterial = backRenderer.material;
         dropShaderMaterial = shadowRenderer.material;
+        allText = GetComponentsInChildren<TMPro.TextMeshProUGUI>();
+        allRenderers = GetComponentsInChildren<MeshRenderer>();
+    }
+
+    void SetAlpha(float alpha) {
+        foreach(TMPro.TextMeshProUGUI text in allText) {
+            text.color = new Color(text.color.r, text.color.g, text.color.b, alpha);
+        }
+
+        foreach(MeshRenderer renderer in allRenderers) {
+            Color c = renderer.material.color;
+            renderer.material.color = new Color(c.r, c.g, c.b, alpha);
+        }
+
+        foreach(SpriteRenderer r in lineSprite) {
+            r.color = new Color(r.color.r, r.color.g, r.color.b, alpha);
+        }
     }
 
     public Color GetPrimaryColor() {
@@ -114,17 +142,15 @@ public class CardObject : MonoBehaviour
             int count
         )
     {
+        text.text = stringSet;
         if (lineType == LineType.Choice) {
             text.color = choiceTextColor;
-            text.text = stringSet;
             sprite.color = choiceColor;
         } else if (lineType == LineType.TragicEvent) {
             text.color = tragicEventTextColor;
-            text.text = stringSet;
             sprite.color = tragicEventColor;
         } else if (lineType == LineType.Event) {
             text.color = eventTextColor;
-            text.text = stringSet;
             sprite.color = eventcolor;
         }
 
@@ -143,6 +169,14 @@ public class CardObject : MonoBehaviour
         } else {
             sprite.enabled = false;
         }
+
+        if(lineType == LineType.Draw) {
+            text.color = drawTextColor;
+        }
+
+        if(lineType == LineType.Discard) {
+            text.color = discardTextColor;
+        }
     }
 
     private string CreateString(int count, string word) {
@@ -154,7 +188,14 @@ public class CardObject : MonoBehaviour
     
     public bool flipped = false;
 
+    public GameObject gainStar;
+    public GameObject loseStar;
     public void InitializeCard(Card cardSet) {
+
+        gainStar.SetActive(cardSet.gainStar);
+        loseStar.SetActive(cardSet.loseStar);
+
+        SetAlpha(1.0f);
         decrementDeckCountWhenStart = false;
         incrementDeckCountWhenDone = false;
         waitingForAnimation = false;
@@ -176,7 +217,7 @@ public class CardObject : MonoBehaviour
         card = cardSet;
         titleText.text = card.name;
 
-        if (card.lifespan == 0) {
+        if (card.lifespan == 0 || true) {
             lifespanText.text = "";
         } else {
             lifespanText.text = card.lifespan.ToString();
@@ -201,6 +242,10 @@ public class CardObject : MonoBehaviour
         } else if (card.type == CardType.Event) {
             backMaterial.mainTexture = eventBackMaterial;
             frontRenderer.material.mainTexture = eventFrontTexture;
+        }   
+
+        if (card.randomCardback) {
+            backMaterial.mainTexture = mysteryEventBackMaterial;
         }
     
         if (card.choiceCards.Count > 0) {
@@ -231,13 +276,27 @@ public class CardObject : MonoBehaviour
             currentLine++;
         }
 
+        if (currentLine > 2) return;
+
+        if (card.randomEvents.Count > 0) {
+            int count = card.randomEvents.Count;
+            string toAppend = CreateString(count, "Mystery");
+            InitializeLine(lineText[currentLine], lineSprite[currentLine], LineType.Event, toAppend, count);
+
+            lineText[currentLine].enabled = true;
+            lineSprite[currentLine].enabled = true;
+            currentLine++;
+        }
+
+        if (currentLine > 2) return;
+
         if (card.handSizeAdjustmentTurns > 0) {
             string toAppend;
             
             if(card.handSizeAdjustmentTurns == 1) {
-                toAppend = "Next turn you only draw " + card.handSizeAdjustment.ToString() + " cards";
+                toAppend = "Next time you draw " + card.handSizeAdjustment.ToString() + "you only draw cards";
             } else {
-                toAppend = "For " + card.handSizeAdjustmentTurns.ToString() + " turns you only draw "
+                toAppend = "For " + card.handSizeAdjustmentTurns.ToString() + "draws you only draw "
                  + card.handSizeAdjustment.ToString() + " cards";
             }
 
@@ -248,19 +307,17 @@ public class CardObject : MonoBehaviour
             currentLine++;
         }
         
-         if (card.cardDiscard > 0) {
-            LineType lineType = LineType.Event;
+        if (currentLine > 2) return;
 
-            if (card.type == CardType.TragicEvent) {
-                lineType = LineType.TragicEvent;
-            }
+         if (card.cardDiscard > 0) {
+            LineType lineType = LineType.Discard;
 
              string toAppend;
             
             if(card.cardDiscard == 1) {
-                toAppend = "Discard 1 random card";
+                toAppend = "Discard 1 card";
             } else {
-                toAppend = "Discard " + card.cardDraw.ToString() + " random cards";
+                toAppend = "Discard " + card.cardDiscard.ToString() + " cards";
             }
 
             InitializeLine(lineText[currentLine], lineSprite[currentLine], lineType, toAppend, 0);
@@ -269,12 +326,10 @@ public class CardObject : MonoBehaviour
             currentLine++;
         }
 
-        if (card.cardDraw > 0) {
-            LineType lineType = LineType.Event;
+        if (currentLine > 2) return;
 
-            if (card.type == CardType.TragicEvent) {
-                lineType = LineType.TragicEvent;
-            }
+        if (card.cardDraw > 0) {
+            LineType lineType = LineType.Draw;
 
              string toAppend;
             
@@ -386,8 +441,10 @@ public class CardObject : MonoBehaviour
 
         if (fadeTimer > 0 && runFadeOut) {
             float alpha = 1.0f - Mathf.Clamp(fadeTimer / fadeTimerMax, 0, 1.0f);
+            SetAlpha(alpha);
+            /*
             backMaterial.color = new Color(1, 1, 1, alpha);
-            dropShaderMaterial.color = new Color(1, 1, 1, alpha);
+            dropShaderMaterial.color = new Color(1, 1, 1, alpha);*/
         }
 
         fadeTimer += Time.deltaTime;
